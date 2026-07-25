@@ -1,9 +1,9 @@
 const CACHE_NAME = 'pronounpocket-v1';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/icon.svg',
-  '/manifest.json'
+  './',
+  'index.html',
+  'icon.svg',
+  'manifest.json'
 ];
 
 // Install Event - Pre-cache shell assets
