@@ -243,12 +243,7 @@ export default function PhoneSimulator({
     }
     const currentCard = sessionDeck[currentCardIndex];
     const { set, sentence } = currentCard;
-    const correctValue = getCorrectPronounValue(set, sentence.type);
-    
-    // Forms of the same neopronoun set
-    const sameSetForms = [set.subject, set.object, set.possessiveDet, set.possessivePro, set.reflexive].filter(
-      form => form && form.trim().toLowerCase() !== correctValue.toLowerCase()
-    );
+    const correctValue = getCorrectPronounValue(set, sentence.type).trim();
     
     // Traditional equivalents as context distractors
     const traditionalCounterparts = {
@@ -267,46 +262,66 @@ export default function PhoneSimulator({
       reflexive: 'herself'
     };
 
-    const options = [correctValue];
-    
+    const options: string[] = [correctValue];
+
+    const addOptionUnique = (val: string | undefined | null) => {
+      if (!val) return;
+      const cleanVal = val.trim();
+      if (cleanVal === '') return;
+      const alreadyHas = options.some(o => o.toLowerCase() === cleanVal.toLowerCase());
+      if (!alreadyHas) {
+        options.push(cleanVal);
+      }
+    };
+
+    // Other forms of the same neopronoun set
+    const sameSetForms = [set.subject, set.object, set.possessiveDet, set.possessivePro, set.reflexive]
+      .map(f => f?.trim())
+      .filter((f): f is string => !!f && f.toLowerCase() !== correctValue.toLowerCase());
+
+    // Remove duplicates from sameSetForms themselves
+    const uniqueSameSetForms = sameSetForms.filter((form, idx, self) => 
+      self.findIndex(f => f.toLowerCase() === form.toLowerCase()) === idx
+    );
+
     // Add 1-2 other forms from same set as primary distractors
-    const shuffledSameSet = [...sameSetForms].sort(() => 0.5 - Math.random());
+    const shuffledSameSet = [...uniqueSameSetForms].sort(() => 0.5 - Math.random());
     shuffledSameSet.forEach(opt => {
       if (options.length < 3) {
-        options.push(opt);
+        addOptionUnique(opt);
       }
     });
 
     // Add traditional counterparts
     const trad = traditionalCounterparts[sentence.type];
-    if (trad && !options.includes(trad)) {
-      options.push(trad);
+    if (trad) {
+      addOptionUnique(trad);
     }
     
+    // Add binary counterparts
     const bin = binaryCounterparts[sentence.type];
-    if (bin && options.length < 4 && !options.includes(bin)) {
-      options.push(bin);
+    if (bin && options.length < 4) {
+      addOptionUnique(bin);
     }
 
-    // Fill remaining up to 4 options
+    // Fill remaining from same neopronoun set
     shuffledSameSet.forEach(opt => {
-      if (options.length < 4 && !options.includes(opt)) {
-        options.push(opt);
+      if (options.length < 4) {
+        addOptionUnique(opt);
       }
     });
 
+    // Fallbacks if we still have under 4 unique options
     const fallbackForms = ['ey', 'em', 'eir', 'eirs', 'emself', 'xe', 'xem', 'xyr', 'xyrs', 'xemself'];
     let fallbackIdx = 0;
     while (options.length < 4 && fallbackIdx < fallbackForms.length) {
       const fallback = fallbackForms[fallbackIdx];
-      if (!options.includes(fallback)) {
-        options.push(fallback);
-      }
+      addOptionUnique(fallback);
       fallbackIdx++;
     }
 
-    // Shuffle the 4 options
-    return options.sort(() => 0.5 - Math.random());
+    // Shuffle the final 4 options
+    return options.slice(0, 4).sort(() => 0.5 - Math.random());
   }, [sessionDeck, currentCardIndex]);
 
   return (
