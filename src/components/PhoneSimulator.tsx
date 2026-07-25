@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   Plus, 
   Trash2, 
@@ -16,9 +16,11 @@ import {
   Wifi,
   Database,
   Upload,
-  Download
+  Download,
+  ArrowRight,
+  Users
 } from 'lucide-react';
-import { PronounSet, PracticeSentence } from '../types';
+import { PronounSet, PracticeSentence, Person, SessionCard } from '../types';
 
 interface PhoneSimulatorProps {
   activeTab: 'study' | 'learn' | 'library' | 'android-specs';
@@ -26,7 +28,7 @@ interface PhoneSimulatorProps {
   streak: number;
   masteredCount: number;
   pronounSets: PronounSet[];
-  sessionDeck: { set: PronounSet; sentence: PracticeSentence }[];
+  sessionDeck: SessionCard[];
   currentCardIndex: number;
   isFlipped: boolean;
   setIsFlipped: (f: boolean) => void;
@@ -55,10 +57,21 @@ interface PhoneSimulatorProps {
   handleEditClick: (set: PronounSet) => void;
   setSelectedDetailsSet: (set: PronounSet) => void;
   selectedDetailsSet: PronounSet | null;
-  formatSentence: (sentence: PracticeSentence, set: PronounSet, reveal: boolean) => React.ReactNode;
+  formatSentence: (sentence: PracticeSentence, set: PronounSet, reveal: boolean, personName?: string) => React.ReactNode;
   timeString: string;
   handleExportSettings: () => void;
   handleImportSettings: (json: string) => boolean;
+  studyMode: 'flashcard' | 'multiple-choice' | 'contextual-mc';
+  setStudyMode: (mode: 'flashcard' | 'multiple-choice' | 'contextual-mc') => void;
+  selectedOption: string | null;
+  isAnswerChecked: boolean;
+  handleMultipleChoiceSelect: (option: string) => void;
+  handleMultipleChoiceNext: () => void;
+  practiceFocus: 'all' | 'people';
+  handleSetPracticeFocus: (focus: 'all' | 'people') => void;
+  people: Person[];
+  handleCreateOrUpdatePerson: (id: string | null, name: string, pronounSetIds: string[]) => void;
+  handleDeletePerson: (id: string) => void;
 }
 
 export default function PhoneSimulator({
@@ -99,10 +112,162 @@ export default function PhoneSimulator({
   formatSentence,
   timeString,
   handleExportSettings,
-  handleImportSettings
+  handleImportSettings,
+  studyMode,
+  setStudyMode,
+  selectedOption,
+  isAnswerChecked,
+  handleMultipleChoiceSelect,
+  handleMultipleChoiceNext,
+  practiceFocus,
+  handleSetPracticeFocus,
+  people,
+  handleCreateOrUpdatePerson,
+  handleDeletePerson
 }: PhoneSimulatorProps) {
   // Ensure we don't crash if activeTab is 'android-specs' on mount
   const currentPhoneTab = activeTab === 'android-specs' ? 'study' : activeTab;
+
+  // Many-to-Many Library States
+  const [librarySubTab, setLibrarySubTab] = useState<'pronouns' | 'people'>('pronouns');
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(() => {
+    return people.length > 0 ? people[0].id : null;
+  });
+
+  // Person Add/Edit Form State
+  const [isPersonModalOpen, setIsPersonModalOpen] = useState(false);
+  const [editingPerson, setEditingPerson] = useState<Person | null>(null);
+  const [personName, setPersonName] = useState('');
+  const [personPronounIds, setPersonPronounIds] = useState<string[]>([]);
+
+  // Helper to replace placeholder with appropriate form
+  const getCorrectPronounValue = (set: PronounSet, type: string) => {
+    switch (type) {
+      case 'subject': return set.subject;
+      case 'object': return set.object;
+      case 'possessiveDet': return set.possessiveDet;
+      case 'possessivePro': return set.possessivePro;
+      case 'reflexive': return set.reflexive;
+      default: return set.subject;
+    }
+  };
+
+  // Local helper to format completed sentences for contextual MCQ choices
+  const getContextualMCQOptionText = (sentence: PracticeSentence, set: PronounSet, candidatePronoun: string, personName?: string) => {
+    let templateString = sentence.template;
+    
+    // Capitalize if beginning of sentence
+    const isBeginning = templateString.startsWith("___");
+    const displayPronoun = isBeginning 
+      ? candidatePronoun.charAt(0).toUpperCase() + candidatePronoun.slice(1) 
+      : candidatePronoun.toLowerCase();
+
+    // Handle verb agreement for plural-agreeing pronouns like 'they'
+    if (candidatePronoun.toLowerCase() === 'they') {
+      templateString = templateString
+        .replace("___ is", "___ are")
+        .replace("___ loves", "___ love");
+    }
+
+    const activeName = personName || set.associatedNames;
+
+    // Replace hardcoded "Ze" / "Fae" inside reflexive templates with subject pronoun or name
+    if (sentence.type === 'reflexive') {
+      const subjectCapitalized = set.subject.charAt(0).toUpperCase() + set.subject.slice(1);
+      const replacementSubject = activeName ? activeName : subjectCapitalized;
+      templateString = templateString
+        .replace(/^Ze\b/, replacementSubject)
+        .replace(/^Fae\b/, replacementSubject);
+    } else if (activeName) {
+      // Prepend context sentence with the associated name to customize practice context
+      const name = activeName;
+      if (sentence.type === 'subject') {
+        const verb = candidatePronoun.toLowerCase() === 'they' ? "are" : "is";
+        templateString = `${name} is busy. ${templateString}`;
+      } else if (sentence.type === 'object') {
+        templateString = `${name} is in class. ${templateString}`;
+      } else if (sentence.type === 'possessiveDet') {
+        templateString = `${name} is creative. ${templateString}`;
+      } else if (sentence.type === 'possessivePro') {
+        templateString = `${name} made this. ${templateString}`;
+      }
+    }
+
+    return templateString.replace("___", displayPronoun);
+  };
+
+  // Memoized options for Contextual Multiple Choice Mode
+  const multipleChoiceOptions = useMemo(() => {
+    if (!sessionDeck || sessionDeck.length === 0 || currentCardIndex >= sessionDeck.length) {
+      return [];
+    }
+    const currentCard = sessionDeck[currentCardIndex];
+    const { set, sentence } = currentCard;
+    const correctValue = getCorrectPronounValue(set, sentence.type);
+    
+    // Forms of the same neopronoun set
+    const sameSetForms = [set.subject, set.object, set.possessiveDet, set.possessivePro, set.reflexive].filter(
+      form => form && form.trim().toLowerCase() !== correctValue.toLowerCase()
+    );
+    
+    // Traditional equivalents as context distractors
+    const traditionalCounterparts = {
+      subject: 'they',
+      object: 'them',
+      possessiveDet: 'their',
+      possessivePro: 'theirs',
+      reflexive: 'themself'
+    };
+    
+    const binaryCounterparts = {
+      subject: 'she',
+      object: 'him',
+      possessiveDet: 'his',
+      possessivePro: 'hers',
+      reflexive: 'herself'
+    };
+
+    const options = [correctValue];
+    
+    // Add 1-2 other forms from same set as primary distractors
+    const shuffledSameSet = [...sameSetForms].sort(() => 0.5 - Math.random());
+    shuffledSameSet.forEach(opt => {
+      if (options.length < 3) {
+        options.push(opt);
+      }
+    });
+
+    // Add traditional counterparts
+    const trad = traditionalCounterparts[sentence.type];
+    if (trad && !options.includes(trad)) {
+      options.push(trad);
+    }
+    
+    const bin = binaryCounterparts[sentence.type];
+    if (bin && options.length < 4 && !options.includes(bin)) {
+      options.push(bin);
+    }
+
+    // Fill remaining up to 4 options
+    shuffledSameSet.forEach(opt => {
+      if (options.length < 4 && !options.includes(opt)) {
+        options.push(opt);
+      }
+    });
+
+    const fallbackForms = ['ey', 'em', 'eir', 'eirs', 'emself', 'xe', 'xem', 'xyr', 'xyrs', 'xemself'];
+    let fallbackIdx = 0;
+    while (options.length < 4 && fallbackIdx < fallbackForms.length) {
+      const fallback = fallbackForms[fallbackIdx];
+      if (!options.includes(fallback)) {
+        options.push(fallback);
+      }
+      fallbackIdx++;
+    }
+
+    // Shuffle the 4 options
+    return options.sort(() => 0.5 - Math.random());
+  }, [sessionDeck, currentCardIndex]);
 
   return (
     <div className="w-full flex flex-col bg-white dark:bg-slate-900 rounded-[16px] border border-neutral-200 dark:border-slate-800 shadow-sm overflow-hidden select-none">
@@ -165,121 +330,352 @@ export default function PhoneSimulator({
                 </span>
               </div>
 
-              {sessionDeck.length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  <div 
-                    onClick={() => setIsFlipped(!isFlipped)}
-                    className="w-full h-72 cursor-pointer select-none [perspective:1000px]"
+              {/* Learning Mode Selection Toggle */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-neutral-100 dark:bg-slate-900/50 p-1.5 rounded-[10px] border border-neutral-200/40 dark:border-slate-800/40 gap-2 mb-1">
+                <div className="flex items-center justify-between sm:justify-start gap-4">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-500 dark:text-slate-400 pl-1.5">Learning Mode:</span>
+                </div>
+                <div className="flex gap-1 bg-white/50 dark:bg-slate-950/40 p-0.5 rounded-[8px] border border-neutral-200/20 dark:border-slate-800/20 w-full sm:w-auto flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setStudyMode('flashcard')}
+                    className={`flex-1 sm:flex-none px-2.5 py-1 rounded-[6px] text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer text-center whitespace-nowrap ${studyMode === 'flashcard' ? 'bg-[#0F172A] dark:bg-indigo-600 text-white shadow-2xs' : 'text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-200'}`}
                   >
-                    <div className={`relative w-full h-full transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
-                      
-                      {/* FRONT */}
-                      <div className="absolute inset-0 w-full h-full rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 p-5 flex flex-col justify-between shadow-sm [backface-visibility:hidden]">
-                        <div className="flex justify-between items-start">
-                          <span className="text-[8px] font-bold uppercase tracking-widest text-[#0F172A] dark:text-indigo-300 bg-[#EEF2FF] dark:bg-indigo-950/60 border border-[#EEF2FF]/40 dark:border-indigo-900/40 px-2 py-0.5 rounded-[4px]">
-                            {sessionDeck[currentCardIndex].sentence.type.toUpperCase()}
-                          </span>
-                          <span className="text-[8px] text-neutral-400 dark:text-slate-500 flex items-center gap-1 font-semibold uppercase tracking-wider">
-                            <RotateCw className="w-2.5 h-2.5" /> Tap to flip
-                          </span>
-                        </div>
+                    📇 Flashcard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStudyMode('multiple-choice')}
+                    className={`flex-1 sm:flex-none px-2.5 py-1 rounded-[6px] text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer text-center whitespace-nowrap ${studyMode === 'multiple-choice' ? 'bg-[#0F172A] dark:bg-indigo-600 text-white shadow-2xs' : 'text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-200'}`}
+                  >
+                    🎯 Multiple Choice
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStudyMode('contextual-mc')}
+                    className={`flex-1 sm:flex-none px-2.5 py-1 rounded-[6px] text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer text-center whitespace-nowrap ${studyMode === 'contextual-mc' ? 'bg-[#0F172A] dark:bg-indigo-600 text-white shadow-2xs' : 'text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-200'}`}
+                  >
+                    📝 Contextual MCQ
+                  </button>
+                </div>
+              </div>
 
-                        <div className="text-center my-3">
-                          <div className="text-base font-light text-[#0F172A] dark:text-slate-200 leading-relaxed font-serif italic">
-                            {formatSentence(sessionDeck[currentCardIndex].sentence, sessionDeck[currentCardIndex].set, false)}
+              {/* Practice Focus Toggle */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-neutral-100 dark:bg-slate-900/50 p-1.5 rounded-[10px] border border-neutral-200/40 dark:border-slate-800/40 gap-2 mb-1">
+                <div className="flex items-center justify-between sm:justify-start gap-4">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-500 dark:text-slate-400 pl-1.5 flex items-center gap-1">
+                    <Users className="w-3 h-3 text-neutral-500" /> Focus Practice:
+                  </span>
+                </div>
+                <div className="flex gap-1 bg-white/50 dark:bg-slate-950/40 p-0.5 rounded-[8px] border border-neutral-200/20 dark:border-slate-800/20 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => handleSetPracticeFocus('all')}
+                    className={`flex-1 sm:flex-none px-3 py-1 rounded-[6px] text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer text-center ${practiceFocus === 'all' ? 'bg-[#0F172A] dark:bg-indigo-600 text-white shadow-2xs' : 'text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-200'}`}
+                  >
+                    🌎 All Library
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSetPracticeFocus('people')}
+                    className={`flex-1 sm:flex-none px-3 py-1 rounded-[6px] text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer text-center ${practiceFocus === 'people' ? 'bg-[#0F172A] dark:bg-indigo-600 text-white shadow-2xs' : 'text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-200'}`}
+                  >
+                    👥 Saved People ({people.length})
+                  </button>
+                </div>
+              </div>
+
+              {sessionDeck.length > 0 ? (
+                studyMode === 'flashcard' ? (
+                  <div className="flex flex-col gap-3">
+                    <div 
+                      onClick={() => setIsFlipped(!isFlipped)}
+                      className="w-full h-72 cursor-pointer select-none [perspective:1000px]"
+                    >
+                      <div className={`relative w-full h-full transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+                        
+                        {/* FRONT */}
+                        <div className="absolute inset-0 w-full h-full rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 p-5 flex flex-col justify-between shadow-sm [backface-visibility:hidden]">
+                          <div className="flex justify-between items-start">
+                            <span className="text-[8px] font-bold uppercase tracking-widest text-[#0F172A] dark:text-indigo-300 bg-[#EEF2FF] dark:bg-indigo-950/60 border border-[#EEF2FF]/40 dark:border-indigo-900/40 px-2 py-0.5 rounded-[4px]">
+                              {sessionDeck[currentCardIndex].sentence.type.toUpperCase()}
+                            </span>
+                            <span className="text-[8px] text-neutral-400 dark:text-slate-500 flex items-center gap-1 font-semibold uppercase tracking-wider">
+                              <RotateCw className="w-2.5 h-2.5" /> Tap to flip
+                            </span>
                           </div>
-                        </div>
 
-                        <div className="bg-[#FDFBF7] dark:bg-slate-950/40 rounded-[8px] p-2 text-center border border-neutral-200/60 dark:border-slate-800/80">
-                          {sessionDeck[currentCardIndex].set.associatedNames ? (
-                            <div className="flex flex-col">
-                              <span className="text-[8px] uppercase tracking-widest text-[#4338CA] dark:text-indigo-400 font-bold block mb-0.5">PRACTICING FOR:</span>
-                              <span className="text-xs font-bold text-[#4338CA] dark:text-indigo-300 capitalize">
-                                {sessionDeck[currentCardIndex].set.associatedNames}
-                              </span>
-                              <span className="text-[7.5px] text-neutral-400 dark:text-slate-500 mt-1 uppercase font-mono font-bold tracking-tight">
-                                ({sessionDeck[currentCardIndex].set.subject} / {sessionDeck[currentCardIndex].set.object} / {sessionDeck[currentCardIndex].set.possessiveDet})
-                              </span>
+                          <div className="text-center my-3">
+                            <div className="text-base font-light text-[#0F172A] dark:text-slate-200 leading-relaxed font-serif italic">
+                              {formatSentence(sessionDeck[currentCardIndex].sentence, sessionDeck[currentCardIndex].set, false, sessionDeck[currentCardIndex].personName)}
                             </div>
-                          ) : (
-                            <>
-                              <span className="text-[8px] uppercase tracking-widest text-neutral-400 dark:text-slate-500 font-bold block mb-0.5">TARGET PRONOUN SET:</span>
-                              <span className="text-xs font-bold text-[#0F172A] dark:text-slate-200 capitalize">
-                                {sessionDeck[currentCardIndex].set.subject} / {sessionDeck[currentCardIndex].set.object} / {sessionDeck[currentCardIndex].set.possessiveDet}
-                              </span>
-                            </>
-                          )}
+                          </div>
+
+                          <div className="bg-[#FDFBF7] dark:bg-slate-950/40 rounded-[8px] p-2 text-center border border-neutral-200/60 dark:border-slate-800/80">
+                            {sessionDeck[currentCardIndex].set.associatedNames ? (
+                              <div className="flex flex-col">
+                                <span className="text-[8px] uppercase tracking-widest text-[#4338CA] dark:text-indigo-400 font-bold block mb-0.5">PRACTICING FOR:</span>
+                                <span className="text-xs font-bold text-[#4338CA] dark:text-indigo-300 capitalize">
+                                  {sessionDeck[currentCardIndex].set.associatedNames}
+                                </span>
+                                <span className="text-[7.5px] text-neutral-400 dark:text-slate-500 mt-1 uppercase font-mono font-bold tracking-tight">
+                                  ({sessionDeck[currentCardIndex].set.subject} / {sessionDeck[currentCardIndex].set.object} / {sessionDeck[currentCardIndex].set.possessiveDet})
+                                </span>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="text-[8px] uppercase tracking-widest text-neutral-400 dark:text-slate-500 font-bold block mb-0.5">TARGET PRONOUN SET:</span>
+                                <span className="text-xs font-bold text-[#0F172A] dark:text-slate-200 capitalize">
+                                  {sessionDeck[currentCardIndex].set.subject} / {sessionDeck[currentCardIndex].set.object} / {sessionDeck[currentCardIndex].set.possessiveDet}
+                                </span>
+                              </>
+                            )}
+                          </div>
                         </div>
+
+                        {/* BACK */}
+                        <div className="absolute inset-0 w-full h-full rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 p-5 flex flex-col justify-between shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                          <div className="flex justify-between items-start">
+                            <span className="text-[8px] font-bold uppercase tracking-widest text-[#0F172A] dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/40 px-2 py-0.5 rounded-[4px]">
+                              REVEALED
+                            </span>
+                            <span className="text-[8px] text-neutral-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Correct Form</span>
+                          </div>
+
+                          <div className="text-center my-3 text-base font-light text-[#0F172A] dark:text-slate-200 leading-relaxed">
+                            {formatSentence(sessionDeck[currentCardIndex].sentence, sessionDeck[currentCardIndex].set, true, sessionDeck[currentCardIndex].personName)}
+                          </div>
+
+                          {/* Mini forms checklist inside card back */}
+                          <div className="grid grid-cols-5 gap-0.5 text-[8px] font-mono text-center bg-[#FDFBF7] dark:bg-slate-950/40 p-1.5 rounded-[6px] border border-neutral-200 dark:border-slate-800">
+                            <div className={sessionDeck[currentCardIndex].sentence.type === 'subject' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
+                              <span>{sessionDeck[currentCardIndex].set.subject}</span>
+                            </div>
+                            <div className={sessionDeck[currentCardIndex].sentence.type === 'object' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
+                              <span>{sessionDeck[currentCardIndex].set.object}</span>
+                            </div>
+                            <div className={sessionDeck[currentCardIndex].sentence.type === 'possessiveDet' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
+                              <span>{sessionDeck[currentCardIndex].set.possessiveDet}</span>
+                            </div>
+                            <div className={sessionDeck[currentCardIndex].sentence.type === 'possessivePro' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
+                              <span>{sessionDeck[currentCardIndex].set.possessivePro}</span>
+                            </div>
+                            <div className={sessionDeck[currentCardIndex].sentence.type === 'reflexive' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
+                              <span>{sessionDeck[currentCardIndex].set.reflexive}</span>
+                            </div>
+                          </div>
+                        </div>
+
                       </div>
+                    </div>
 
-                      {/* BACK */}
-                      <div className="absolute inset-0 w-full h-full rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 p-5 flex flex-col justify-between shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]">
-                        <div className="flex justify-between items-start">
-                          <span className="text-[8px] font-bold uppercase tracking-widest text-[#0F172A] dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/40 px-2 py-0.5 rounded-[4px]">
-                            REVEALED
-                          </span>
-                          <span className="text-[8px] text-neutral-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Correct Form</span>
+                    {/* Controls inside phone */}
+                    <div className="mt-1">
+                      {!isFlipped ? (
+                        <button
+                          type="button"
+                          onClick={() => setIsFlipped(true)}
+                          className="w-full flex items-center justify-center gap-2 py-3 px-3 rounded-[8px] bg-[#0F172A] dark:bg-indigo-600 hover:bg-neutral-800 dark:hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer shadow-sm"
+                          style={{ minHeight: '44px' }}
+                        >
+                          <RefreshCw className="w-3.5 h-3.5 text-indigo-300 animate-spin-slow" />
+                          Check Answer
+                        </button>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => handleCardRating(false)}
+                            className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-[8px] border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 hover:bg-red-100/80 dark:hover:bg-red-900/20 text-red-700 dark:text-red-400 font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer"
+                            style={{ minHeight: '44px' }}
+                          >
+                            <X className="w-3.5 h-3.5 text-red-500" />
+                            Got It Wrong
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCardRating(true)}
+                            className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-[8px] border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer"
+                            style={{ minHeight: '44px' }}
+                          >
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            Got It Right
+                          </button>
                         </div>
-
-                        <div className="text-center my-3 text-base font-light text-[#0F172A] dark:text-slate-200 leading-relaxed">
-                          {formatSentence(sessionDeck[currentCardIndex].sentence, sessionDeck[currentCardIndex].set, true)}
-                        </div>
-
-                        {/* Mini forms checklist inside card back */}
-                        <div className="grid grid-cols-5 gap-0.5 text-[8px] font-mono text-center bg-[#FDFBF7] dark:bg-slate-950/40 p-1.5 rounded-[6px] border border-neutral-200 dark:border-slate-800">
-                          <div className={sessionDeck[currentCardIndex].sentence.type === 'subject' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
-                            <span>{sessionDeck[currentCardIndex].set.subject}</span>
-                          </div>
-                          <div className={sessionDeck[currentCardIndex].sentence.type === 'object' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
-                            <span>{sessionDeck[currentCardIndex].set.object}</span>
-                          </div>
-                          <div className={sessionDeck[currentCardIndex].sentence.type === 'possessiveDet' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
-                            <span>{sessionDeck[currentCardIndex].set.possessiveDet}</span>
-                          </div>
-                          <div className={sessionDeck[currentCardIndex].sentence.type === 'possessivePro' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
-                            <span>{sessionDeck[currentCardIndex].set.possessivePro}</span>
-                          </div>
-                          <div className={sessionDeck[currentCardIndex].sentence.type === 'reflexive' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
-                            <span>{sessionDeck[currentCardIndex].set.reflexive}</span>
-                          </div>
-                        </div>
-                      </div>
-
+                      )}
                     </div>
                   </div>
-
-                  {/* Controls inside phone */}
-                  <div className="mt-1">
-                    {!isFlipped ? (
-                      <button
-                        onClick={() => setIsFlipped(true)}
-                        className="w-full flex items-center justify-center gap-2 py-3 px-3 rounded-[8px] bg-[#0F172A] dark:bg-indigo-600 hover:bg-neutral-800 dark:hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer shadow-sm"
-                        style={{ minHeight: '44px' }}
-                      >
-                        <RefreshCw className="w-3.5 h-3.5 text-indigo-300 animate-spin-slow" />
-                        Check Answer
-                      </button>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-2.5">
-                        <button
-                          onClick={() => handleCardRating(false)}
-                          className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-[8px] border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 hover:bg-red-100/80 dark:hover:bg-red-900/20 text-red-700 dark:text-red-400 font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer"
-                          style={{ minHeight: '44px' }}
-                        >
-                          <X className="w-3.5 h-3.5 text-red-500" />
-                          Got It Wrong
-                        </button>
-                        <button
-                          onClick={() => handleCardRating(true)}
-                          className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-[8px] border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer"
-                          style={{ minHeight: '44px' }}
-                        >
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          Got It Right
-                        </button>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {/* Card Display */}
+                    <div className="w-full rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 p-5 flex flex-col justify-between shadow-sm min-h-[16rem]">
+                      <div className="flex justify-between items-start">
+                        <span className="text-[8px] font-bold uppercase tracking-widest text-[#0F172A] dark:text-indigo-300 bg-[#EEF2FF] dark:bg-indigo-950/60 border border-[#EEF2FF]/40 dark:border-indigo-900/40 px-2 py-0.5 rounded-[4px]">
+                          {sessionDeck[currentCardIndex].sentence.type.toUpperCase()}
+                        </span>
+                        <span className="text-[8px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                          🎯 Multiple Choice
+                        </span>
                       </div>
-                    )}
+
+                      <div className="text-center my-6">
+                        <div className="text-base font-light text-[#0F172A] dark:text-slate-200 leading-relaxed font-serif italic">
+                          {formatSentence(sessionDeck[currentCardIndex].sentence, sessionDeck[currentCardIndex].set, isAnswerChecked, sessionDeck[currentCardIndex].personName)}
+                        </div>
+                      </div>
+
+                      <div className="bg-[#FDFBF7] dark:bg-slate-950/40 rounded-[8px] p-2 text-center border border-neutral-200/60 dark:border-slate-800/80">
+                        {sessionDeck[currentCardIndex].set.associatedNames ? (
+                          <div className="flex flex-col">
+                            <span className="text-[8px] uppercase tracking-widest text-[#4338CA] dark:text-indigo-400 font-bold block mb-0.5">PRACTICING FOR:</span>
+                            <span className="text-xs font-bold text-[#4338CA] dark:text-indigo-300 capitalize">
+                              {sessionDeck[currentCardIndex].set.associatedNames}
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-[8px] uppercase tracking-widest text-neutral-400 dark:text-slate-500 font-bold block mb-0.5">TARGET PRONOUN SET:</span>
+                            <span className="text-xs font-bold text-[#0F172A] dark:text-slate-200 capitalize">
+                              {sessionDeck[currentCardIndex].set.subject} / {sessionDeck[currentCardIndex].set.object}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Feedback Message */}
+                    <div className="text-center min-h-[1.5rem] flex items-center justify-center">
+                      {!isAnswerChecked ? (
+                        <span className="text-[10px] text-neutral-400 dark:text-slate-500 font-medium uppercase tracking-wider animate-pulse">
+                          Select the correct pronoun to complete the sentence
+                        </span>
+                      ) : (
+                        (() => {
+                          const correctVal = getCorrectPronounValue(sessionDeck[currentCardIndex].set, sessionDeck[currentCardIndex].sentence.type);
+                          const isCorrect = selectedOption?.toLowerCase() === correctVal.toLowerCase();
+                          return (
+                            <span className={`text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 animate-in fade-in duration-150 ${isCorrect ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                              {isCorrect ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Perfect! You selected the correct form</span>
+                                </>
+                              ) : (
+                                <>
+                                  <X className="w-3.5 h-3.5" />
+                                  <span>Incorrect. The correct form is "{correctVal}"</span>
+                                </>
+                              )}
+                            </span>
+                          );
+                        })()
+                      )}
+                    </div>
+
+                    {/* Multiple Choice Option Buttons */}
+                    <div className="grid grid-cols-1 gap-2">
+                      {multipleChoiceOptions.map((option, idx) => {
+                        const correctVal = getCorrectPronounValue(sessionDeck[currentCardIndex].set, sessionDeck[currentCardIndex].sentence.type);
+                        const isOptionCorrect = option.toLowerCase() === correctVal.toLowerCase();
+                        const isOptionSelected = selectedOption?.toLowerCase() === option.toLowerCase();
+                        
+                        let btnClass = "";
+                        let letterBadgeClass = "";
+                        let iconToRender = null;
+
+                        const letters = ['A', 'B', 'C', 'D'];
+
+                        if (!isAnswerChecked) {
+                          // Unchecked/active state
+                          btnClass = "w-full flex items-center justify-between p-3 rounded-[10px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 hover:border-indigo-400 dark:hover:border-indigo-850 hover:bg-indigo-50/10 dark:hover:bg-indigo-950/10 text-neutral-800 dark:text-slate-200 transition-all cursor-pointer font-sans text-xs font-semibold shadow-2xs";
+                          letterBadgeClass = "w-5 h-5 flex items-center justify-center text-[10px] font-mono font-bold bg-neutral-100 dark:bg-slate-800 text-neutral-500 dark:text-slate-400 rounded-[4px] border border-neutral-200/60 dark:border-slate-700/60 transition-colors";
+                        } else {
+                          // Checked state
+                          if (isOptionCorrect) {
+                            // Correct answer highlighted green
+                            btnClass = "w-full flex items-center justify-between p-3 rounded-[10px] bg-emerald-50 dark:bg-emerald-950/20 border-2 border-emerald-500 dark:border-emerald-500/80 text-emerald-900 dark:text-emerald-300 transition-all font-sans text-xs font-bold shadow-2xs";
+                            letterBadgeClass = "w-5 h-5 flex items-center justify-center text-[10px] font-mono font-bold bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-400 rounded-[4px] border border-emerald-200 dark:border-emerald-800/40";
+                            iconToRender = <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />;
+                          } else if (isOptionSelected) {
+                            // Incorrect chosen answer highlighted red
+                            btnClass = "w-full flex items-center justify-between p-3 rounded-[10px] bg-red-50 dark:bg-red-950/20 border-2 border-red-500 dark:border-red-500/80 text-red-900 dark:text-red-300 transition-all font-sans text-xs font-bold shadow-2xs";
+                            letterBadgeClass = "w-5 h-5 flex items-center justify-center text-[10px] font-mono font-bold bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-400 rounded-[4px] border border-red-200 dark:border-red-800/40";
+                            iconToRender = <X className="w-4 h-4 text-red-600 dark:text-red-400" />;
+                          } else {
+                            // Other answers muted
+                            btnClass = "w-full flex items-center justify-between p-3 rounded-[10px] bg-white/40 dark:bg-slate-900/40 border border-neutral-200/50 dark:border-slate-800/50 text-neutral-400 dark:text-slate-500 transition-all font-sans text-xs font-medium opacity-50 cursor-not-allowed";
+                            letterBadgeClass = "w-5 h-5 flex items-center justify-center text-[10px] font-mono font-bold bg-neutral-100/60 dark:bg-slate-800/60 text-neutral-400 dark:text-slate-500 rounded-[4px] border border-neutral-200/40 dark:border-slate-700/40";
+                          }
+                        }
+
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            disabled={isAnswerChecked}
+                            onClick={() => handleMultipleChoiceSelect(option)}
+                            className={btnClass}
+                            style={{ minHeight: '44px' }}
+                          >
+                            <div className="flex items-center gap-3 text-left">
+                              <span className={letterBadgeClass}>
+                                {letters[idx]}
+                              </span>
+                              <span className={studyMode === 'contextual-mc' ? "text-[11px] text-left leading-normal font-sans" : "capitalize font-sans text-left"}>
+                                {studyMode === 'contextual-mc'
+                                  ? getContextualMCQOptionText(
+                                      sessionDeck[currentCardIndex].sentence,
+                                      sessionDeck[currentCardIndex].set,
+                                      option,
+                                      sessionDeck[currentCardIndex].personName
+                                    )
+                                  : option
+                                }
+                              </span>
+                            </div>
+                            {iconToRender}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Next Button when checked */}
+                    <div className="mt-1 min-h-[44px]">
+                      {isAnswerChecked && (
+                        <button
+                          type="button"
+                          onClick={handleMultipleChoiceNext}
+                          className="w-full flex items-center justify-center gap-2 py-3 px-3 rounded-[8px] bg-[#0F172A] hover:bg-neutral-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200"
+                          style={{ minHeight: '44px' }}
+                        >
+                          <span>{currentCardIndex < sessionDeck.length - 1 ? 'Next Card' : 'Finish Practice Session'}</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-white" />
+                        </button>
+                      )}
+                    </div>
                   </div>
+                )
+              ) : practiceFocus === 'people' ? (
+                <div className="text-center py-8 bg-white dark:bg-slate-900 rounded-[12px] border border-neutral-200 dark:border-slate-800 px-5 flex flex-col items-center animate-in fade-in duration-200">
+                  <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-[#4338CA] dark:text-indigo-400 mb-3">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-xs font-bold text-[#0F172A] dark:text-slate-100 mb-1 font-serif italic">No Saved People Found</h3>
+                  <p className="text-[10.5px] text-neutral-400 dark:text-slate-400 mb-4 font-light leading-relaxed">
+                    You don't have any people saved with associated pronouns yet! Go to the Library tab, toggle to the "Saved People" section, and add a saved person with their associated pronouns to practice them.
+                  </p>
+                  <button 
+                    onClick={() => {
+                      setActiveTab('library');
+                      setTimeout(() => {
+                        const tabTrigger = document.getElementById('people-tab-trigger');
+                        if (tabTrigger) tabTrigger.click();
+                      }, 50);
+                    }}
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[8px] uppercase text-[9.5px] tracking-widest font-bold transition cursor-pointer shadow-xs font-sans"
+                  >
+                    Go to Library
+                  </button>
                 </div>
               ) : pronounSets.length > 0 ? (
                 <div className="text-center py-8 bg-white dark:bg-slate-900 rounded-[12px] border border-neutral-200 dark:border-slate-800 px-5 flex flex-col items-center">
@@ -391,26 +787,76 @@ export default function PhoneSimulator({
                     <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 dark:text-slate-400 font-sans">Pronoun Database</span>
                     <span className="text-[9px] uppercase font-mono text-neutral-400 dark:text-slate-500 px-1.5 py-0.5 bg-neutral-100 dark:bg-slate-900 rounded border border-neutral-200/50 dark:border-slate-800/50">sqlite_local.db</span>
                   </div>
-                  <h3 className="text-xl font-light font-serif italic text-[#0F172A] dark:text-slate-100 mt-1">Pronoun Library</h3>
-                  <p className="text-xs text-neutral-500 dark:text-slate-400 font-light mt-0.5">Configure active sets for practice or add your own custom entries.</p>
+                  <h3 className="text-xl font-light font-serif italic text-[#0F172A] dark:text-slate-100 mt-1">
+                    {librarySubTab === 'pronouns' ? 'Pronoun Library' : 'Saved People Library'}
+                  </h3>
+                  <p className="text-xs text-neutral-500 dark:text-slate-400 font-light mt-0.5">
+                    {librarySubTab === 'pronouns' 
+                      ? 'Configure active sets for practice or add your own custom entries.' 
+                      : 'Manage people profiles and configure custom pronoun set assignments.'}
+                  </p>
                 </div>
 
+                {librarySubTab === 'pronouns' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewSubject('');
+                      setNewObject('');
+                      setNewPossessiveDet('');
+                      setNewPossessivePro('');
+                      setNewReflexive('');
+                      setNewNotes('');
+                      setNewAssociatedNames('');
+                      setIsAddModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-[8px] bg-[#0F172A] dark:bg-indigo-600 hover:bg-neutral-800 dark:hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-white" />
+                    Add Custom Set
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    id="add-person-btn"
+                    onClick={() => {
+                      setEditingPerson(null);
+                      setPersonName('');
+                      setPersonPronounIds([]);
+                      setIsPersonModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-[8px] bg-[#0F172A] dark:bg-indigo-600 hover:bg-neutral-800 dark:hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-xs whitespace-nowrap"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-white" />
+                    Add Saved Person
+                  </button>
+                )}
+              </div>
+
+              {/* Library Sub-Tabs Selector */}
+              <div className="flex border-b border-neutral-200 dark:border-slate-850 gap-4 mb-1">
                 <button
                   type="button"
-                  onClick={() => {
-                    setNewSubject('');
-                    setNewObject('');
-                    setNewPossessiveDet('');
-                    setNewPossessivePro('');
-                    setNewReflexive('');
-                    setNewNotes('');
-                    setNewAssociatedNames('');
-                    setIsAddModalOpen(true);
-                  }}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-[8px] bg-[#0F172A] dark:bg-indigo-600 hover:bg-neutral-800 dark:hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-xs"
+                  onClick={() => setLibrarySubTab('pronouns')}
+                  className={`pb-2.5 px-1 text-xs font-bold uppercase tracking-wider transition-all relative cursor-pointer ${
+                    librarySubTab === 'pronouns'
+                      ? 'text-[#0F172A] dark:text-slate-100 border-b-2 border-indigo-500'
+                      : 'text-neutral-400 hover:text-neutral-600 dark:text-slate-500 dark:hover:text-slate-350'
+                  }`}
                 >
-                  <Plus className="w-3.5 h-3.5 text-white" />
-                  Add Custom Set
+                  Pronoun Sets ({pronounSets.length})
+                </button>
+                <button
+                  type="button"
+                  id="people-tab-trigger"
+                  onClick={() => setLibrarySubTab('people')}
+                  className={`pb-2.5 px-1 text-xs font-bold uppercase tracking-wider transition-all relative cursor-pointer ${
+                    librarySubTab === 'people'
+                      ? 'text-[#0F172A] dark:text-slate-100 border-b-2 border-indigo-500'
+                      : 'text-neutral-400 hover:text-neutral-600 dark:text-slate-500 dark:hover:text-slate-350'
+                  }`}
+                >
+                  Saved People ({people.length})
                 </button>
               </div>
 
@@ -490,9 +936,10 @@ export default function PhoneSimulator({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                
-                {/* Left side: Pronoun Sets Grid (7 cols) */}
+              {librarySubTab === 'pronouns' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  
+                  {/* Left side: Pronoun Sets Grid (7 cols) */}
                 <div className="lg:col-span-7 flex flex-col gap-3">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {pronounSets.map(set => (
@@ -651,6 +1098,165 @@ export default function PhoneSimulator({
                 </div>
 
               </div>
+              )}
+
+              {/* Saved People Sub-tab View (Many-to-Many Layout) */}
+              {librarySubTab === 'people' && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  
+                  {/* Left side: Saved People List (7 cols) */}
+                  <div className="lg:col-span-7 flex flex-col gap-3">
+                    {people.length === 0 ? (
+                      <div className="p-8 rounded-[12px] border border-dashed border-neutral-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 flex flex-col items-center justify-center text-center text-neutral-400 dark:text-slate-500 py-16">
+                        <Users className="w-10 h-10 text-neutral-300 dark:text-slate-700 mb-3 animate-pulse" />
+                        <span className="text-xs font-bold uppercase tracking-wider">No Saved People Found</span>
+                        <p className="text-xs text-neutral-400 dark:text-slate-600 mt-2 max-w-sm font-light leading-relaxed">
+                          Create your first saved person using the "Add Saved Person" button above to practice pronouns personalized for your friends, family, or colleagues!
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {people.map(person => {
+                          const associatedSets = pronounSets.filter(set => person.pronounSetIds.includes(set.id));
+                          const isSelected = selectedPersonId === person.id;
+                          return (
+                            <div
+                              key={person.id}
+                              onClick={() => setSelectedPersonId(person.id)}
+                              className={`p-4 rounded-[12px] border transition-all text-left cursor-pointer bg-white dark:bg-slate-900 ${
+                                isSelected
+                                  ? 'border-indigo-500 dark:border-indigo-500 ring-2 ring-indigo-500/20 dark:ring-indigo-500/30 shadow-xs'
+                                  : 'border-neutral-200 dark:border-slate-850 hover:border-neutral-300 dark:hover:border-slate-750'
+                              }`}
+                            >
+                              <div className="flex justify-between items-start">
+                                <h4 className="font-serif italic font-bold text-sm text-[#0F172A] dark:text-slate-100 flex items-center gap-1.5 capitalize">
+                                  <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
+                                  {person.name}
+                                </h4>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingPerson(person);
+                                      setPersonName(person.name);
+                                      setPersonPronounIds(person.pronounSetIds);
+                                      setIsPersonModalOpen(true);
+                                    }}
+                                    className="px-2 py-0.5 border border-neutral-200 dark:border-slate-800 rounded-[4px] font-bold uppercase tracking-wider text-[8.5px] text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-200 hover:bg-neutral-50 dark:hover:bg-slate-800 cursor-pointer"
+                                    title="Edit Person"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeletePerson(person.id);
+                                    }}
+                                    className="p-0.5 text-neutral-400 dark:text-slate-500 hover:text-red-600 cursor-pointer"
+                                    title="Delete Person"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="mt-3 flex flex-wrap gap-1">
+                                {associatedSets.length === 0 ? (
+                                  <span className="text-[8px] uppercase font-bold tracking-wider text-neutral-400 bg-neutral-100 dark:bg-slate-850 dark:text-slate-500 px-1.5 py-0.5 rounded">
+                                    No pronouns assigned
+                                  </span>
+                                ) : (
+                                  associatedSets.map(set => (
+                                    <span
+                                      key={set.id}
+                                      className="text-[8.5px] uppercase font-bold tracking-wide bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-100/50 dark:border-indigo-900/30 font-mono"
+                                    >
+                                      {set.subject}/{set.object}
+                                    </span>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Side: Saved Person Detailed Inspector (5 cols) */}
+                  <div className="lg:col-span-5 flex flex-col gap-4">
+                    {(() => {
+                      const activePerson = people.find(p => p.id === selectedPersonId) || people[0];
+                      if (!activePerson) {
+                        return (
+                          <div className="p-8 rounded-[12px] border border-dashed border-neutral-200 dark:border-slate-800 flex flex-col items-center justify-center text-center text-neutral-400 dark:text-slate-500 py-16 sticky top-24">
+                            <Users className="w-10 h-10 text-neutral-300 dark:text-slate-700 mb-3" />
+                            <span className="text-xs font-bold uppercase tracking-wider">Select a Person</span>
+                            <p className="text-xs text-neutral-400 dark:text-slate-600 mt-2 max-w-[220px] font-light leading-relaxed">
+                              Click any person in the list to inspect their custom grammar profiles and personalized context examples.
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      const activePersonSets = pronounSets.filter(set => activePerson.pronounSetIds.includes(set.id));
+
+                      return (
+                        <div className="p-5 rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-850 shadow-xs animate-in fade-in duration-200 lg:sticky lg:top-24 text-left">
+                          <span className="text-[8.5px] font-bold uppercase tracking-widest bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-[4px] border border-indigo-100/50 dark:border-indigo-900/40 font-mono">
+                            Person Profile
+                          </span>
+                          <h3 className="text-base font-light text-[#0F172A] dark:text-slate-100 mt-3.5 flex items-center gap-2">
+                            Interactive profile for <span className="font-serif italic font-normal text-indigo-700 dark:text-indigo-300 capitalize">"{activePerson.name}"</span>
+                          </h3>
+
+                          <div className="mt-4 flex flex-col gap-4">
+                            <div>
+                              <span className="text-[9px] font-bold text-neutral-400 dark:text-slate-500 uppercase tracking-wider font-mono">Pronoun Paradigms Used</span>
+                              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                                {activePersonSets.length === 0 ? (
+                                  <p className="text-xs text-neutral-400 dark:text-slate-500 italic font-light">No associated pronoun sets assigned yet.</p>
+                                ) : (
+                                  activePersonSets.map(set => (
+                                    <div key={set.id} className="px-2 py-1 rounded-[6px] bg-[#FDFBF7] dark:bg-slate-950 border border-neutral-200 dark:border-slate-800 text-[11px] font-mono flex items-center gap-1.5">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                      <strong>{set.subject}/{set.object}</strong>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+
+                            {activePersonSets.length > 0 && (
+                              <div className="border-t border-neutral-100 dark:border-slate-850 pt-3">
+                                <span className="text-[9px] font-bold text-neutral-400 dark:text-slate-500 uppercase tracking-wider font-mono">Personalized Sentence Examples</span>
+                                <div className="mt-2.5 flex flex-col gap-3 max-h-[350px] overflow-y-auto pr-1">
+                                  {activePersonSets.map(set => (
+                                    <div key={set.id} className="p-3 bg-[#FDFBF7] dark:bg-slate-950/40 border border-neutral-200 dark:border-slate-800 rounded-[8px] text-xs">
+                                      <span className="text-[8px] uppercase tracking-wider font-bold font-mono text-indigo-700 dark:text-indigo-400 block mb-1">
+                                        Using {set.subject}/{set.object}
+                                      </span>
+                                      <div className="flex flex-col gap-1.5 font-light">
+                                        <p>{formatSentence({ type: 'subject', template: '___ is going to the library today.' }, set, true, activePerson.name)}</p>
+                                        <p>{formatSentence({ type: 'object', template: 'The teacher asked ___ to answer.' }, set, true, activePerson.name)}</p>
+                                        <p>{formatSentence({ type: 'possessiveDet', template: 'This is ___ notebook.' }, set, true, activePerson.name)}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                </div>
+              )}
 
             </div>
           )}
@@ -781,6 +1387,106 @@ export default function PhoneSimulator({
                     {editingSet ? 'Save Changes' : 'Insert Set'}
                   </button>
                 </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Many-to-Many Person Modal */}
+        {isPersonModalOpen && (
+          <div className="fixed inset-0 bg-neutral-950/65 backdrop-blur-xs flex items-center justify-center z-50 animate-in fade-in duration-200 p-4">
+            <div className="bg-[#FDFBF7] dark:bg-slate-900 w-full max-w-md rounded-[16px] p-6 shadow-xl border border-neutral-200 dark:border-slate-800 flex flex-col gap-4 max-h-[90%] overflow-y-auto animate-in zoom-in-95 duration-200 text-left">
+              
+              <div className="flex justify-between items-center pb-3 border-b border-neutral-200 dark:border-slate-800">
+                <span className="text-xs font-bold uppercase tracking-widest text-[#0F172A] dark:text-slate-100 flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-indigo-500" />
+                  {editingPerson ? 'Update Person Profile' : 'Insert Person Profile'}
+                </span>
+                <button 
+                  type="button"
+                  onClick={() => setIsPersonModalOpen(false)}
+                  className="p-1 rounded-full hover:bg-neutral-200 dark:hover:bg-slate-850 text-neutral-400 dark:text-slate-500 hover:text-neutral-700 dark:hover:text-slate-300 transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!personName.trim()) {
+                    alert("Name is required");
+                    return;
+                  }
+                  if (personPronounIds.length === 0) {
+                    alert("Please select at least one pronoun set for this person");
+                    return;
+                  }
+                  handleCreateOrUpdatePerson(editingPerson ? editingPerson.id : null, personName, personPronounIds);
+                  setIsPersonModalOpen(false);
+                }}
+                className="flex flex-col gap-4"
+              >
+                {/* Person Name Input */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-slate-400">
+                    Person Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={personName}
+                    onChange={(e) => setPersonName(e.target.value)}
+                    placeholder="e.g. Sam, Riley, Ash"
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-950 text-[#0F172A] dark:text-slate-100 border border-neutral-200 dark:border-slate-800 rounded-[8px] text-xs font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-hidden transition-all placeholder-neutral-400 font-sans"
+                  />
+                </div>
+
+                {/* Pronoun Sets Checklist / Multiselect */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-slate-400">
+                    Select Pronoun Sets Used *
+                  </label>
+                  <p className="text-[10px] text-neutral-400 dark:text-slate-500 font-light leading-relaxed mb-1">
+                    Select all pronoun sets that apply to this person. You can choose multiple sets.
+                  </p>
+                  
+                  <div className="flex flex-col gap-2 max-h-[180px] overflow-y-auto border border-neutral-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 rounded-[8px]">
+                    {pronounSets.map(set => {
+                      const isChecked = personPronounIds.includes(set.id);
+                      return (
+                        <label 
+                          key={set.id}
+                          className="flex items-center gap-2.5 p-1.5 rounded hover:bg-neutral-50 dark:hover:bg-slate-900 cursor-pointer text-xs font-medium"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                setPersonPronounIds(personPronounIds.filter(id => id !== set.id));
+                              } else {
+                                setPersonPronounIds([...personPronounIds, set.id]);
+                              }
+                            }}
+                            className="rounded border-neutral-300 dark:border-slate-700 text-[#0F172A] dark:text-slate-100 focus:ring-indigo-500"
+                          />
+                          <span className="font-sans text-neutral-800 dark:text-slate-200 capitalize">
+                            {set.subject} / {set.object}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Submit button */}
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-[8px] bg-[#0F172A] dark:bg-indigo-650 hover:bg-neutral-800 dark:hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider shadow-xs transition-all cursor-pointer font-sans mt-2"
+                >
+                  {editingPerson ? 'Save Changes' : 'Add Person Profile'}
+                </button>
               </form>
             </div>
           </div>

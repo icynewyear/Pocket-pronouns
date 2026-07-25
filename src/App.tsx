@@ -18,7 +18,7 @@ import {
   Smartphone,
   X
 } from 'lucide-react';
-import { PronounSet, PracticeSentence, REQUIRED_CORRECT_ATTEMPTS } from './types';
+import { PronounSet, PracticeSentence, REQUIRED_CORRECT_ATTEMPTS, Person, SessionCard } from './types';
 import PhoneSimulator from './components/PhoneSimulator';
 
 // Default seeded neopronoun sets
@@ -166,6 +166,24 @@ const DEFAULT_PRONOUNS: PronounSet[] = [
     isMastered: false,
     reviewCount: 0,
     notes: 'Traditionally used for non-human entities, but also adopted by some non-binary, genderqueer, and neurodivergent individuals to express their gender identity. Like any set, it should be respected when requested.'
+  }
+];
+
+export const DEFAULT_PEOPLE: Person[] = [
+  {
+    id: 'p0',
+    name: 'Ash',
+    pronounSetIds: ['1', '2'] // ze/zir & xe/xem
+  },
+  {
+    id: 'p1',
+    name: 'Taylor',
+    pronounSetIds: ['0', '3'] // they/them & fae/faer
+  },
+  {
+    id: 'p2',
+    name: 'Sam',
+    pronounSetIds: ['0', '1'] // they/them & ze/zir
   }
 ];
 
@@ -372,18 +390,7 @@ export default function App() {
       setCurrentCardIndex(0);
       setIsFlipped(false);
     } else {
-      // Re-trigger/rebuild session deck to incorporate newly enabled set immediately
-      const activeSets = updated.filter(set => set.isEnabled !== false);
-      const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
-      activeSets.forEach(set => {
-        const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
-        shuffledTemplates.slice(0, 3).forEach(sentence => {
-          deck.push({ set, sentence });
-        });
-      });
-      setSessionDeck(deck.sort(() => 0.5 - Math.random()));
-      setCurrentCardIndex(0);
-      setIsFlipped(false);
+      generateSessionDeck(practiceFocus, updated);
     }
   };
 
@@ -402,34 +409,139 @@ export default function App() {
       setCurrentCardIndex(0);
       setIsFlipped(false);
     } else {
-      // Rebuild the deck with all sets
-      const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
-      updated.forEach(set => {
-        const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
-        shuffledTemplates.slice(0, 3).forEach(sentence => {
-          deck.push({ set, sentence });
-        });
-      });
-      setSessionDeck(deck.sort(() => 0.5 - Math.random()));
-      setCurrentCardIndex(0);
-      setIsFlipped(false);
+      generateSessionDeck(practiceFocus, updated);
     }
   };
 
   // Log initial database connection
   useEffect(() => {
     logQuery(`sqlite> SELECT * FROM pronoun_set ORDER BY isCustom DESC, id ASC;`, 'select');
-    logQuery(`RoomDB [SUCCESS]: Opened SQLite Connection 'sqlite_local.db' & retrieved ${pronounSets.length} rows successfully.`, 'success');
+    logQuery(`sqlite> SELECT * FROM person ORDER BY name ASC;`, 'select');
+    logQuery(`sqlite> SELECT * FROM person_pronoun_cross_ref;`, 'select');
+    logQuery(`RoomDB [SUCCESS]: Opened SQLite Connection 'sqlite_local.db' & retrieved ${pronounSets.length} pronoun sets & ${people.length} person records successfully.`, 'success');
   }, []);
 
   // Study session states
-  const [sessionDeck, setSessionDeck] = useState<{set: PronounSet; sentence: PracticeSentence}[]>([]);
+  const [sessionDeck, setSessionDeck] = useState<SessionCard[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [streak, setStreak] = useState<number>(() => {
     const saved = localStorage.getItem('pronoun_pocket_streak');
     return saved ? Number(saved) : 0;
   });
+
+  // People (Many-to-Many Relationship) State
+  const [people, setPeople] = useState<Person[]>(() => {
+    const saved = localStorage.getItem('pronoun_pocket_people');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [...DEFAULT_PEOPLE];
+      }
+    }
+    return [...DEFAULT_PEOPLE];
+  });
+
+  // Sync people to local storage
+  useEffect(() => {
+    localStorage.setItem('pronoun_pocket_people', JSON.stringify(people));
+  }, [people]);
+
+  // Practice Focus state ('all' | 'people')
+  const [practiceFocus, setPracticeFocus] = useState<'all' | 'people'>('all');
+
+  const handleSetPracticeFocus = (focus: 'all' | 'people') => {
+    setPracticeFocus(focus);
+    generateSessionDeck(focus);
+  };
+
+  // Multiple Choice Study Mode States
+  const [studyMode, setStudyMode] = useState<'flashcard' | 'multiple-choice' | 'contextual-mc'>('flashcard');
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isAnswerChecked, setIsAnswerChecked] = useState(false);
+
+  const handleMultipleChoiceSelect = (option: string) => {
+    if (isAnswerChecked) return;
+
+    const activeCard = sessionDeck[currentCardIndex];
+    const correctValue = getCorrectPronounValue(activeCard.set, activeCard.sentence.type);
+    const isCorrect = option.toLowerCase() === correctValue.toLowerCase();
+
+    setSelectedOption(option);
+    setIsAnswerChecked(true);
+
+    const formType = activeCard.sentence.type;
+    const updatedSets = pronounSets.map(set => {
+      if (set.id === activeCard.set.id) {
+        const currentAttempts = set.correctAttempts || {
+          subject: 0,
+          object: 0,
+          possessiveDet: 0,
+          possessivePro: 0,
+          reflexive: 0
+        };
+
+        let newAttempts = { ...currentAttempts };
+        if (isCorrect) {
+          newAttempts[formType] = Math.min(REQUIRED_CORRECT_ATTEMPTS, (currentAttempts[formType] || 0) + 1);
+        }
+
+        const allMastered =
+          newAttempts.subject >= REQUIRED_CORRECT_ATTEMPTS &&
+          newAttempts.object >= REQUIRED_CORRECT_ATTEMPTS &&
+          newAttempts.possessiveDet >= REQUIRED_CORRECT_ATTEMPTS &&
+          newAttempts.possessivePro >= REQUIRED_CORRECT_ATTEMPTS &&
+          newAttempts.reflexive >= REQUIRED_CORRECT_ATTEMPTS;
+
+        const updatedSet = {
+          ...set,
+          reviewCount: set.reviewCount + 1,
+          correctAttempts: newAttempts,
+          isMastered: allMastered
+        };
+
+        const colName = formType === 'subject' ? 'subject_correct'
+                      : formType === 'object' ? 'object_correct'
+                      : formType === 'possessiveDet' ? 'poss_det_correct'
+                      : formType === 'possessivePro' ? 'poss_pro_correct'
+                      : 'reflexive_correct';
+
+        logQuery(`sqlite> UPDATE pronoun_set SET reviewCount = ${updatedSet.reviewCount}, ${colName} = ${newAttempts[formType]}, isMastered = ${allMastered ? 1 : 0} WHERE id = '${set.id}';`, 'update');
+        logQuery(`RoomDB [SUCCESS]: Multiple Choice stats saved for '${set.subject}/${set.object}'. Correct: ${isCorrect}. ${formType.toUpperCase()}: ${newAttempts[formType]}/${REQUIRED_CORRECT_ATTEMPTS}.`, 'success');
+
+        return updatedSet;
+      }
+      return set;
+    });
+
+    setPronounSets(updatedSets);
+
+    if (selectedDetailsSet) {
+      const updatedDetails = updatedSets.find(s => s.id === selectedDetailsSet.id);
+      if (updatedDetails) {
+        setSelectedDetailsSet(updatedDetails);
+      }
+    }
+
+    if (isCorrect) {
+      setStreak(prev => prev + 1);
+    } else {
+      setStreak(0);
+    }
+  };
+
+  const handleMultipleChoiceNext = () => {
+    setSelectedOption(null);
+    setIsAnswerChecked(false);
+
+    if (currentCardIndex < sessionDeck.length - 1) {
+      setCurrentCardIndex(prev => prev + 1);
+    } else {
+      alert("Congratulations! You have completed this multiple choice practice deck. Let's load a fresh batch!");
+      generateSessionDeck();
+    }
+  };
 
   // Sync streak to local storage
   useEffect(() => {
@@ -468,6 +580,7 @@ export default function App() {
         version: 1,
         exportedAt: new Date().toISOString(),
         pronounSets,
+        people,
         streak,
         darkMode
       };
@@ -483,7 +596,7 @@ export default function App() {
       downloadAnchor.remove();
 
       logQuery(`sqlite> SELECT write_backup_file('pronoun-pocket-settings.json');`, 'select');
-      logQuery(`RoomDB [SUCCESS]: Exported application backup containing ${pronounSets.length} sets, streak of ${streak}, and theme.`, 'success');
+      logQuery(`RoomDB [SUCCESS]: Exported application backup containing ${pronounSets.length} sets, ${people.length} people, streak of ${streak}, and theme.`, 'success');
     } catch (error) {
       console.error('Failed to export settings:', error);
       alert('An error occurred while exporting settings.');
@@ -529,7 +642,16 @@ export default function App() {
         };
       });
 
+      const validatedPeople: Person[] = Array.isArray(parsed.people) ? parsed.people.map((p: any) => {
+        return {
+          id: String(p.id || 'p-' + Date.now() + '-' + Math.random()),
+          name: String(p.name || ''),
+          pronounSetIds: Array.isArray(p.pronounSetIds) ? p.pronounSetIds.map(String) : []
+        };
+      }) : [...DEFAULT_PEOPLE];
+
       setPronounSets(validatedSets);
+      setPeople(validatedPeople);
       
       if (typeof parsed.streak === 'number') {
         setStreak(parsed.streak);
@@ -542,7 +664,17 @@ export default function App() {
       validatedSets.forEach(set => {
         logQuery(`sqlite> INSERT INTO pronoun_set (id, subject, object) VALUES ('${set.id}', '${set.subject}', '${set.object}');`, 'insert');
       });
-      logQuery(`RoomDB [SUCCESS]: Imported database transaction. Restored ${validatedSets.length} rows, streak of ${parsed.streak || 0}.`, 'success');
+
+      logQuery(`sqlite> DELETE FROM person;`, 'delete');
+      logQuery(`sqlite> DELETE FROM person_pronoun_cross_ref;`, 'delete');
+      validatedPeople.forEach(p => {
+        logQuery(`sqlite> INSERT INTO person (id, name) VALUES ('${p.id}', '${p.name}');`, 'insert');
+        p.pronounSetIds.forEach(setId => {
+          logQuery(`sqlite> INSERT INTO person_pronoun_cross_ref (person_id, pronoun_set_id) VALUES ('${p.id}', '${setId}');`, 'insert');
+        });
+      });
+
+      logQuery(`RoomDB [SUCCESS]: Imported database transaction. Restored ${validatedSets.length} pronoun sets, ${validatedPeople.length} people, streak of ${parsed.streak || 0}.`, 'success');
       alert("Settings and pronoun sets imported successfully!");
       return true;
     } catch (error) {
@@ -553,37 +685,63 @@ export default function App() {
   };
 
   // Generate / shuffle a learning session deck
-  const generateSessionDeck = () => {
-    const activeSets = pronounSets.filter(set => set.isEnabled !== false);
-    if (activeSets.length === 0) {
+  const generateSessionDeck = (
+    focus: 'all' | 'people' = practiceFocus,
+    customSets: PronounSet[] = pronounSets,
+    customPeople: Person[] = people
+  ) => {
+    const deck: SessionCard[] = [];
+    
+    if (focus === 'people') {
+      customPeople.forEach(person => {
+        const personSets = customSets.filter(set => person.pronounSetIds.includes(set.id));
+        personSets.forEach(set => {
+          const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
+          shuffledTemplates.slice(0, 3).forEach(sentence => {
+            deck.push({
+              set,
+              sentence,
+              personName: person.name
+            });
+          });
+        });
+      });
+    } else {
+      const activeSets = customSets.filter(set => set.isEnabled !== false);
+      activeSets.forEach(set => {
+        const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
+        shuffledTemplates.slice(0, 3).forEach(sentence => {
+          deck.push({ set, sentence });
+        });
+      });
+    }
+    
+    if (deck.length === 0) {
       setSessionDeck([]);
       return;
     }
     
-    const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
-    
-    // For each active pronoun set, pair it with relevant templates
-    activeSets.forEach(set => {
-      const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
-      shuffledTemplates.slice(0, 3).forEach(sentence => {
-        deck.push({ set, sentence });
-      });
-    });
-
     // Shuffle final deck
     const shuffledDeck = deck.sort(() => 0.5 - Math.random());
     setSessionDeck(shuffledDeck);
     setCurrentCardIndex(0);
     setIsFlipped(false);
+    setSelectedOption(null);
+    setIsAnswerChecked(false);
 
-    logQuery(`sqlite> SELECT * FROM sentence_template JOIN pronoun_set ON sentence_template.type = pronoun_set.target_form WHERE is_enabled = 1 ORDER BY RANDOM();`, 'select');
-    logQuery(`RoomDB [SUCCESS]: Generated new practice deck session containing ${shuffledDeck.length} flashcards in memory.`, 'success');
+    if (focus === 'people') {
+      logQuery(`sqlite> SELECT * FROM sentence_template JOIN person_pronoun_cross_ref ON sentence_template.type = ... JOIN person ON ...;`, 'select');
+      logQuery(`RoomDB [SUCCESS]: Generated new practice deck session focusing on Saved People (${customPeople.length} people) containing ${shuffledDeck.length} flashcards in memory.`, 'success');
+    } else {
+      logQuery(`sqlite> SELECT * FROM sentence_template JOIN pronoun_set ON sentence_template.type = pronoun_set.target_form WHERE is_enabled = 1 ORDER BY RANDOM();`, 'select');
+      logQuery(`RoomDB [SUCCESS]: Generated new practice deck session focusing on all enabled pronouns containing ${shuffledDeck.length} flashcards in memory.`, 'success');
+    }
   };
 
   // Start initial deck when pronounSets change or component mounts
   useEffect(() => {
     if (sessionDeck.length === 0 && pronounSets.length > 0) {
-      generateSessionDeck();
+      generateSessionDeck(practiceFocus);
     }
   }, [pronounSets]);
 
@@ -607,18 +765,9 @@ export default function App() {
       const updated = resetSets.find(s => s.id === selectedDetailsSet.id);
       setSelectedDetailsSet(updated || null);
     }
-    // Force recreate deck
-    const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
-    const activeSets = resetSets.filter(set => set.isEnabled !== false);
-    activeSets.forEach(set => {
-      const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
-      shuffledTemplates.slice(0, 3).forEach(sentence => {
-        deck.push({ set, sentence });
-      });
-    });
-    setSessionDeck(deck.sort(() => 0.5 - Math.random()));
-    setCurrentCardIndex(0);
-    setIsFlipped(false);
+    
+    // Use unified session deck generator
+    generateSessionDeck(practiceFocus, resetSets, people);
 
     logQuery(`sqlite> UPDATE pronoun_set SET isMastered = 0, reviewCount = 0, correctAttemptsSubject = 0, correctAttemptsObject = 0, correctAttemptsPossessiveDet = 0, correctAttemptsPossessivePro = 0, correctAttemptsReflexive = 0;`, 'update');
     logQuery(`RoomDB [SUCCESS]: RESET database transaction executed successfully. Stats cleared.`, 'success');
@@ -626,6 +775,8 @@ export default function App() {
 
   const handleDebugFactoryReset = () => {
     localStorage.removeItem('pronoun_pocket_sets');
+    localStorage.removeItem('pronoun_pocket_people');
+    
     const freshSets = DEFAULT_PRONOUNS.map(set => ({
       ...set,
       isEnabled: true,
@@ -638,24 +789,21 @@ export default function App() {
       }
     }));
     setPronounSets(freshSets);
+    setPeople([...DEFAULT_PEOPLE]);
     setStreak(0);
     setSelectedDetailsSet(freshSets[0]);
-    // Force recreate deck
-    const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
-    const activeSets = freshSets.filter(set => set.isEnabled !== false);
-    activeSets.forEach(set => {
-      const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
-      shuffledTemplates.slice(0, 3).forEach(sentence => {
-        deck.push({ set, sentence });
-      });
-    });
-    setSessionDeck(deck.sort(() => 0.5 - Math.random()));
-    setCurrentCardIndex(0);
-    setIsFlipped(false);
+
+    // Use unified session deck generator
+    generateSessionDeck(practiceFocus, freshSets, DEFAULT_PEOPLE);
 
     logQuery(`sqlite> DROP TABLE IF EXISTS pronoun_set;`, 'system');
     logQuery(`sqlite> CREATE TABLE pronoun_set (id TEXT PRIMARY KEY, subject TEXT, object TEXT, possessiveDet TEXT, possessivePro TEXT, reflexive TEXT, isCustom INTEGER, isMastered INTEGER, reviewCount INTEGER, notes TEXT, is_enabled INTEGER, associated_names TEXT);`, 'system');
+    logQuery(`sqlite> DROP TABLE IF EXISTS person;`, 'system');
+    logQuery(`sqlite> DROP TABLE IF EXISTS person_pronoun_cross_ref;`, 'system');
+    logQuery(`sqlite> CREATE TABLE person (id TEXT PRIMARY KEY, name TEXT);`, 'system');
+    logQuery(`sqlite> CREATE TABLE person_pronoun_cross_ref (person_id TEXT, pronoun_set_id TEXT, PRIMARY KEY (person_id, pronoun_set_id));`, 'system');
     logQuery(`sqlite> INSERT INTO pronoun_set SELECT * FROM static_seeded_pronouns;`, 'insert');
+    logQuery(`sqlite> INSERT INTO person SELECT * FROM static_seeded_people;`, 'insert');
     logQuery(`RoomDB [SUCCESS]: Factory reset complete. Local database files re-created and re-seeded.`, 'success');
   };
 
@@ -676,18 +824,9 @@ export default function App() {
       const updated = masteredSets.find(s => s.id === selectedDetailsSet.id);
       setSelectedDetailsSet(updated || null);
     }
-    // Force recreate deck
-    const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
-    const activeSets = masteredSets.filter(set => set.isEnabled !== false);
-    activeSets.forEach(set => {
-      const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
-      shuffledTemplates.slice(0, 3).forEach(sentence => {
-        deck.push({ set, sentence });
-      });
-    });
-    setSessionDeck(deck.sort(() => 0.5 - Math.random()));
-    setCurrentCardIndex(0);
-    setIsFlipped(false);
+
+    // Use unified session deck generator
+    generateSessionDeck(practiceFocus, masteredSets, people);
 
     logQuery(`sqlite> UPDATE pronoun_set SET isMastered = 1, correctAttemptsSubject = 3, correctAttemptsObject = 3, correctAttemptsPossessiveDet = 3, correctAttemptsPossessivePro = 3, correctAttemptsReflexive = 3;`, 'update');
     logQuery(`RoomDB [SUCCESS]: UPDATE database transaction executed. All records fully mastered in SQLite.`, 'success');
@@ -736,6 +875,66 @@ export default function App() {
 
     logQuery(`sqlite> INSERT INTO pronoun_set (id, subject, object, possessiveDet, possessivePro, reflexive, isCustom, isMastered, reviewCount, notes, is_enabled) VALUES ('${faeSet.id}', 'fae', 'faer', 'faer', 'faers', 'faeself', 1, 0, 0, '${faeSet.notes}', 1);`, 'insert');
     logQuery(`RoomDB [SUCCESS]: Row created successfully. Row ID: '${faeSet.id}' committed.`, 'success');
+  };
+
+  const handleCreateOrUpdatePerson = (id: string | null, name: string, pronounSetIds: string[]) => {
+    if (!name.trim()) {
+      alert("Name is required");
+      return;
+    }
+    let updatedPeople: Person[];
+    if (id) {
+      // Update
+      updatedPeople = people.map(p => {
+        if (p.id === id) {
+          const updated = { ...p, name: name.trim(), pronounSetIds };
+          logQuery(`sqlite> UPDATE person SET name = '${updated.name}' WHERE id = '${p.id}';`, 'update');
+          logQuery(`sqlite> DELETE FROM person_pronoun_cross_ref WHERE person_id = '${p.id}';`, 'delete');
+          updated.pronounSetIds.forEach(setId => {
+            logQuery(`sqlite> INSERT INTO person_pronoun_cross_ref (person_id, pronoun_set_id) VALUES ('${p.id}', '${setId}');`, 'insert');
+          });
+          logQuery(`RoomDB [SUCCESS]: Person '${updated.name}' updated in SQLite with ${pronounSetIds.length} pronoun associations.`, 'update');
+          return updated;
+        }
+        return p;
+      });
+    } else {
+      // Create
+      const newPerson: Person = {
+        id: 'p-' + Date.now(),
+        name: name.trim(),
+        pronounSetIds
+      };
+      updatedPeople = [...people, newPerson];
+      logQuery(`sqlite> INSERT INTO person (id, name) VALUES ('${newPerson.id}', '${newPerson.name}');`, 'insert');
+      newPerson.pronounSetIds.forEach(setId => {
+        logQuery(`sqlite> INSERT INTO person_pronoun_cross_ref (person_id, pronoun_set_id) VALUES ('${newPerson.id}', '${setId}');`, 'insert');
+      });
+      logQuery(`RoomDB [SUCCESS]: New person record '${newPerson.name}' committed to SQLite with ${pronounSetIds.length} associations.`, 'success');
+    }
+    setPeople(updatedPeople);
+    localStorage.setItem('pronoun_pocket_people', JSON.stringify(updatedPeople));
+    
+    // Regenerate session deck if currently practicing 'people'
+    if (practiceFocus === 'people') {
+      generateSessionDeck('people', pronounSets, updatedPeople);
+    }
+  };
+
+  const handleDeletePerson = (id: string) => {
+    if (confirm("Are you sure you want to delete this person from your library?")) {
+      const updatedPeople = people.filter(p => p.id !== id);
+      setPeople(updatedPeople);
+      localStorage.setItem('pronoun_pocket_people', JSON.stringify(updatedPeople));
+      logQuery(`sqlite> DELETE FROM person WHERE id = '${id}';`, 'delete');
+      logQuery(`sqlite> DELETE FROM person_pronoun_cross_ref WHERE person_id = '${id}';`, 'delete');
+      logQuery(`RoomDB [SUCCESS]: Person ID '${id}' and all joint tables cleared.`, 'success');
+      
+      // Regenerate session deck if currently practicing 'people'
+      if (practiceFocus === 'people') {
+        generateSessionDeck('people', pronounSets, updatedPeople);
+      }
+    }
   };
 
   // CRUD handlers
@@ -937,7 +1136,7 @@ export default function App() {
     }
   };
 
-  const formatSentence = (sentence: PracticeSentence, set: PronounSet, reveal: boolean) => {
+  const formatSentence = (sentence: PracticeSentence, set: PronounSet, reveal: boolean, personName?: string) => {
     const pronounValue = getCorrectPronounValue(set, sentence.type);
     const capitalizedPronoun = pronounValue.charAt(0).toUpperCase() + pronounValue.slice(1);
     
@@ -954,10 +1153,12 @@ export default function App() {
         .replace("___ loves", "___ love");
     }
 
+    const activeName = personName || set.associatedNames;
+
     // Replace hardcoded "Ze" / "Fae" inside reflexive templates with subject pronoun or name
     if (sentence.type === 'reflexive') {
       const subjectCapitalized = set.subject.charAt(0).toUpperCase() + set.subject.slice(1);
-      const replacementSubject = set.associatedNames ? set.associatedNames : subjectCapitalized;
+      const replacementSubject = activeName ? activeName : subjectCapitalized;
       templateString = templateString
         .replace(/^Ze\b/, replacementSubject)
         .replace(/^Fae\b/, replacementSubject);
@@ -968,9 +1169,9 @@ export default function App() {
           .replace("They learned", "They learned") // already correct
           .replace("They cooked", "They cooked"); // already correct
       }
-    } else if (set.associatedNames) {
+    } else if (activeName) {
       // Prepend context sentence with the associated name to customize practice context
-      const name = set.associatedNames;
+      const name = activeName;
       if (sentence.type === 'subject') {
         const verb = set.subject.toLowerCase() === 'they' ? "are" : "is";
         templateString = `${name} is busy. ${templateString}`;
@@ -1129,6 +1330,17 @@ export default function App() {
           timeString={timeString}
           handleExportSettings={handleExportSettings}
           handleImportSettings={handleImportSettings}
+          studyMode={studyMode}
+          setStudyMode={setStudyMode}
+          selectedOption={selectedOption}
+          isAnswerChecked={isAnswerChecked}
+          handleMultipleChoiceSelect={handleMultipleChoiceSelect}
+          handleMultipleChoiceNext={handleMultipleChoiceNext}
+          practiceFocus={practiceFocus}
+          handleSetPracticeFocus={handleSetPracticeFocus}
+          people={people}
+          handleCreateOrUpdatePerson={handleCreateOrUpdatePerson}
+          handleDeletePerson={handleDeletePerson}
         />
 
         {/* Share Section */}

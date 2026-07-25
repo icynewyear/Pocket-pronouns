@@ -26,4 +26,16 @@ export interface PracticeSentence {
   type: 'subject' | 'object' | 'possessiveDet' | 'possessivePro' | 'reflexive';
 }
 
+export interface Person {
+  id: string;
+  name: string;
+  pronounSetIds: string[]; // List of PronounSet IDs associated with this person
+}
+
+export interface SessionCard {
+  set: PronounSet;
+  sentence: PracticeSentence;
+  personName?: string; // Optional name of the person being practiced
+}
+
 export const REQUIRED_CORRECT_ATTEMPTS = 3;
