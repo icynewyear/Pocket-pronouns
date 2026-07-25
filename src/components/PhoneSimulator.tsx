@@ -14,7 +14,9 @@ import {
   Smartphone,
   Battery,
   Wifi,
-  Database
+  Database,
+  Upload,
+  Download
 } from 'lucide-react';
 import { PronounSet, PracticeSentence } from '../types';
 
@@ -55,6 +57,8 @@ interface PhoneSimulatorProps {
   selectedDetailsSet: PronounSet | null;
   formatSentence: (sentence: PracticeSentence, set: PronounSet, reveal: boolean) => React.ReactNode;
   timeString: string;
+  handleExportSettings: () => void;
+  handleImportSettings: (json: string) => boolean;
 }
 
 export default function PhoneSimulator({
@@ -93,7 +97,9 @@ export default function PhoneSimulator({
   setSelectedDetailsSet,
   selectedDetailsSet,
   formatSentence,
-  timeString
+  timeString,
+  handleExportSettings,
+  handleImportSettings
 }: PhoneSimulatorProps) {
   // Ensure we don't crash if activeTab is 'android-specs' on mount
   const currentPhoneTab = activeTab === 'android-specs' ? 'study' : activeTab;
@@ -432,6 +438,58 @@ export default function PhoneSimulator({
                 </div>
               </div>
 
+              {/* Backup & Restore Settings Panel */}
+              <div className="bg-neutral-50 dark:bg-slate-900/40 rounded-[12px] p-4 border border-neutral-200 dark:border-slate-850 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors">
+                <div className="flex flex-col gap-0.5 text-left">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#4338CA] dark:text-indigo-400 font-mono">
+                    Backup & Synchronization
+                  </span>
+                  <h4 className="text-xs font-bold text-neutral-800 dark:text-slate-200">
+                    Import or Export App Data
+                  </h4>
+                  <p className="text-[11px] text-neutral-500 dark:text-slate-400 font-light leading-relaxed">
+                    Save your custom pronoun configurations, practice histories, mastery achievements, and streak counts to a backup file, or restore them.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2.5 w-full md:w-auto">
+                  {/* Export Button */}
+                  <button
+                    type="button"
+                    onClick={handleExportSettings}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider text-neutral-700 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-neutral-50 dark:hover:bg-slate-800 border border-neutral-200 dark:border-slate-800 rounded-[6px] transition-all cursor-pointer shadow-2xs font-sans"
+                  >
+                    <Download className="w-3.5 h-3.5 text-neutral-500 dark:text-slate-400" />
+                    <span>Export Settings</span>
+                  </button>
+
+                  {/* Import Button */}
+                  <label className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 rounded-[6px] transition-all cursor-pointer shadow-2xs font-sans">
+                    <Upload className="w-3.5 h-3.5 text-indigo-100" />
+                    <span>Import Settings</span>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (event) => {
+                            const result = event.target?.result;
+                            if (typeof result === 'string') {
+                              handleImportSettings(result);
+                            }
+                          };
+                          reader.readAsText(file);
+                        }
+                        // Reset file input value so same file can be selected again
+                        e.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
                 {/* Left side: Pronoun Sets Grid (7 cols) */}
@@ -510,7 +568,7 @@ export default function PhoneSimulator({
                               }}
                               className="px-2 py-0.5 border border-neutral-200 dark:border-slate-800 rounded-[4px] font-bold uppercase tracking-wider text-[8.5px] text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-200 hover:bg-neutral-50 dark:hover:bg-slate-800 cursor-pointer"
                             >
-                              Edit
+                              Edit / Add Name
                             </button>
                             <button
                               type="button"

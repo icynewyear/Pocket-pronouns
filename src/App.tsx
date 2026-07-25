@@ -24,6 +24,18 @@ import PhoneSimulator from './components/PhoneSimulator';
 // Default seeded neopronoun sets
 const DEFAULT_PRONOUNS: PronounSet[] = [
   {
+    id: '0',
+    subject: 'they',
+    object: 'them',
+    possessiveDet: 'their',
+    possessivePro: 'theirs',
+    reflexive: 'themself',
+    isCustom: false,
+    isMastered: false,
+    reviewCount: 0,
+    notes: 'The most common gender-neutral pronoun set in English. Used for centuries for single individuals whose gender is unknown, and widely used today by non-binary and genderqueer individuals.'
+  },
+  {
     id: '1',
     subject: 'ze',
     object: 'zir',
@@ -142,6 +154,18 @@ const DEFAULT_PRONOUNS: PronounSet[] = [
     isMastered: false,
     reviewCount: 0,
     notes: 'One of the oldest documented English neopronouns, coined in 1884 by Charles Crozat Converse as a contraction of \'that one\'.'
+  },
+  {
+    id: '11',
+    subject: 'it',
+    object: 'it',
+    possessiveDet: 'its',
+    possessivePro: 'its',
+    reflexive: 'itself',
+    isCustom: false,
+    isMastered: false,
+    reviewCount: 0,
+    notes: 'Traditionally used for non-human entities, but also adopted by some non-binary, genderqueer, and neurodivergent individuals to express their gender identity. Like any set, it should be respected when requested.'
   }
 ];
 
@@ -402,7 +426,15 @@ export default function App() {
   const [sessionDeck, setSessionDeck] = useState<{set: PronounSet; sentence: PracticeSentence}[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [streak, setStreak] = useState(0);
+  const [streak, setStreak] = useState<number>(() => {
+    const saved = localStorage.getItem('pronoun_pocket_streak');
+    return saved ? Number(saved) : 0;
+  });
+
+  // Sync streak to local storage
+  useEffect(() => {
+    localStorage.setItem('pronoun_pocket_streak', String(streak));
+  }, [streak]);
 
   // Modal / Form States for CRUD
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -427,6 +459,98 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('pronoun_pocket_sets', JSON.stringify(pronounSets));
   }, [pronounSets]);
+
+  // Export settings and pronoun sets
+  const handleExportSettings = () => {
+    try {
+      const backupData = {
+        app: 'PronounPocket',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        pronounSets,
+        streak,
+        darkMode
+      };
+      
+      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+        JSON.stringify(backupData, null, 2)
+      )}`;
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', jsonString);
+      downloadAnchor.setAttribute('download', 'pronoun-pocket-settings.json');
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+
+      logQuery(`sqlite> SELECT write_backup_file('pronoun-pocket-settings.json');`, 'select');
+      logQuery(`RoomDB [SUCCESS]: Exported application backup containing ${pronounSets.length} sets, streak of ${streak}, and theme.`, 'success');
+    } catch (error) {
+      console.error('Failed to export settings:', error);
+      alert('An error occurred while exporting settings.');
+    }
+  };
+
+  // Import settings and pronoun sets
+  const handleImportSettings = (importedJson: string) => {
+    try {
+      const parsed = JSON.parse(importedJson);
+      
+      if (!parsed || parsed.app !== 'PronounPocket') {
+        alert("Invalid file format. Please upload a valid PronounPocket settings backup file.");
+        return false;
+      }
+      
+      if (!Array.isArray(parsed.pronounSets)) {
+        alert("Backup file is missing pronoun sets.");
+        return false;
+      }
+      
+      const validatedSets: PronounSet[] = parsed.pronounSets.map((set: any) => {
+        return {
+          id: String(set.id || Date.now() + '-' + Math.random()),
+          subject: String(set.subject || ''),
+          object: String(set.object || ''),
+          possessiveDet: String(set.possessiveDet || ''),
+          possessivePro: String(set.possessivePro || ''),
+          reflexive: String(set.reflexive || ''),
+          isCustom: !!set.isCustom,
+          isMastered: !!set.isMastered,
+          reviewCount: Number(set.reviewCount || 0),
+          isEnabled: set.isEnabled !== false,
+          notes: set.notes ? String(set.notes) : undefined,
+          associatedNames: set.associatedNames ? String(set.associatedNames) : undefined,
+          correctAttempts: {
+            subject: Number(set.correctAttempts?.subject || 0),
+            object: Number(set.correctAttempts?.object || 0),
+            possessiveDet: Number(set.correctAttempts?.possessiveDet || 0),
+            possessivePro: Number(set.correctAttempts?.possessivePro || 0),
+            reflexive: Number(set.correctAttempts?.reflexive || 0)
+          }
+        };
+      });
+
+      setPronounSets(validatedSets);
+      
+      if (typeof parsed.streak === 'number') {
+        setStreak(parsed.streak);
+      }
+      if (typeof parsed.darkMode === 'boolean') {
+        setDarkMode(parsed.darkMode);
+      }
+
+      logQuery(`sqlite> DELETE FROM pronoun_set;`, 'delete');
+      validatedSets.forEach(set => {
+        logQuery(`sqlite> INSERT INTO pronoun_set (id, subject, object) VALUES ('${set.id}', '${set.subject}', '${set.object}');`, 'insert');
+      });
+      logQuery(`RoomDB [SUCCESS]: Imported database transaction. Restored ${validatedSets.length} rows, streak of ${parsed.streak || 0}.`, 'success');
+      alert("Settings and pronoun sets imported successfully!");
+      return true;
+    } catch (error) {
+      console.error('Failed to import settings:', error);
+      alert('An error occurred while parsing the backup file. Please make sure it is a valid JSON file.');
+      return false;
+    }
+  };
 
   // Generate / shuffle a learning session deck
   const generateSessionDeck = () => {
@@ -823,6 +947,13 @@ export default function App() {
 
     let templateString = sentence.template;
 
+    // Handle verb agreement for plural-agreeing pronouns like 'they'
+    if (set.subject.toLowerCase() === 'they') {
+      templateString = templateString
+        .replace("___ is", "___ are")
+        .replace("___ loves", "___ love");
+    }
+
     // Replace hardcoded "Ze" / "Fae" inside reflexive templates with subject pronoun or name
     if (sentence.type === 'reflexive') {
       const subjectCapitalized = set.subject.charAt(0).toUpperCase() + set.subject.slice(1);
@@ -830,10 +961,18 @@ export default function App() {
       templateString = templateString
         .replace(/^Ze\b/, replacementSubject)
         .replace(/^Fae\b/, replacementSubject);
+      
+      // If it's plural-agreeing, adjust reflexive verbs too if any
+      if (set.subject.toLowerCase() === 'they') {
+        templateString = templateString
+          .replace("They learned", "They learned") // already correct
+          .replace("They cooked", "They cooked"); // already correct
+      }
     } else if (set.associatedNames) {
       // Prepend context sentence with the associated name to customize practice context
       const name = set.associatedNames;
       if (sentence.type === 'subject') {
+        const verb = set.subject.toLowerCase() === 'they' ? "are" : "is";
         templateString = `${name} is busy. ${templateString}`;
       } else if (sentence.type === 'object') {
         templateString = `${name} is in class. ${templateString}`;
@@ -988,6 +1127,8 @@ export default function App() {
           selectedDetailsSet={selectedDetailsSet}
           formatSentence={formatSentence}
           timeString={timeString}
+          handleExportSettings={handleExportSettings}
+          handleImportSettings={handleImportSettings}
         />
 
         {/* Share Section */}
