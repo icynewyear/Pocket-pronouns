@@ -286,7 +286,9 @@ export default function App() {
 
   // Share & copy states
   const [copied, setCopied] = useState(false);
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : 'https://pronounpocket.app';
+  const shareUrl = typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')
+    ? (window.location.origin + window.location.pathname)
+    : 'https://icynewyear.github.io/Pocket-pronouns/';
   const shareText = "I'm practicing and learning neopronouns with PronounPocket! Normalizing inclusive language has never been easier. Check it out:";
   
   const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
@@ -461,6 +463,37 @@ export default function App() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
 
+  // Shared import state
+  const [sharedImportData, setSharedImportData] = useState<{
+    pronounSets: PronounSet[];
+    people: Person[];
+    exportedAt?: string;
+  } | null>(null);
+
+  // Parse URL for shared configurations on load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shareParam = params.get('share') || params.get('import');
+    if (shareParam) {
+      try {
+        const decodedString = decodeURIComponent(escape(atob(shareParam)));
+        const parsed = JSON.parse(decodedString);
+        if (parsed && (Array.isArray(parsed.pronounSets) || Array.isArray(parsed.people))) {
+          setSharedImportData({
+            pronounSets: parsed.pronounSets || [],
+            people: parsed.people || [],
+            exportedAt: parsed.exportedAt
+          });
+          // Clean the query parameters from the browser URL to keep it pristine
+          const newUrl = window.location.pathname + window.location.hash;
+          window.history.replaceState({}, document.title, newUrl);
+        }
+      } catch (e) {
+        console.error("Failed to parse shared data from URL:", e);
+      }
+    }
+  }, []);
+
   const handleMultipleChoiceSelect = (option: string) => {
     if (isAnswerChecked) return;
 
@@ -600,6 +633,71 @@ export default function App() {
     } catch (error) {
       console.error('Failed to export settings:', error);
       alert('An error occurred while exporting settings.');
+    }
+  };
+
+  // Import shared configuration from link
+  const handleConfirmSharedImport = () => {
+    if (!sharedImportData) return;
+    try {
+      const validatedSets: PronounSet[] = sharedImportData.pronounSets.map((set: any) => {
+        return {
+          id: String(set.id || Date.now() + '-' + Math.random()),
+          subject: String(set.subject || ''),
+          object: String(set.object || ''),
+          possessiveDet: String(set.possessiveDet || ''),
+          possessivePro: String(set.possessivePro || ''),
+          reflexive: String(set.reflexive || ''),
+          isCustom: !!set.isCustom,
+          isMastered: !!set.isMastered,
+          reviewCount: Number(set.reviewCount || 0),
+          isEnabled: set.isEnabled !== false,
+          notes: set.notes ? String(set.notes) : undefined,
+          associatedNames: set.associatedNames ? String(set.associatedNames) : undefined,
+          correctAttempts: {
+            subject: Number(set.correctAttempts?.subject || 0),
+            object: Number(set.correctAttempts?.object || 0),
+            possessiveDet: Number(set.correctAttempts?.possessiveDet || 0),
+            possessivePro: Number(set.correctAttempts?.possessivePro || 0),
+            reflexive: Number(set.correctAttempts?.reflexive || 0)
+          }
+        };
+      });
+
+      const validatedPeople: Person[] = sharedImportData.people.map((p: any) => {
+        return {
+          id: String(p.id || 'p-' + Date.now() + '-' + Math.random()),
+          name: String(p.name || ''),
+          pronounSetIds: Array.isArray(p.pronounSetIds) ? p.pronounSetIds.map(String) : []
+        };
+      });
+
+      setPronounSets(validatedSets);
+      setPeople(validatedPeople);
+
+      localStorage.setItem('pronoun_pocket_sets', JSON.stringify(validatedSets));
+      localStorage.setItem('pronoun_pocket_people', JSON.stringify(validatedPeople));
+
+      logQuery(`sqlite> DELETE FROM pronoun_set;`, 'delete');
+      validatedSets.forEach(set => {
+        logQuery(`sqlite> INSERT INTO pronoun_set (id, subject, object) VALUES ('${set.id}', '${set.subject}', '${set.object}');`, 'insert');
+      });
+
+      logQuery(`sqlite> DELETE FROM person;`, 'delete');
+      logQuery(`sqlite> DELETE FROM person_pronoun_cross_ref;`, 'delete');
+      validatedPeople.forEach(p => {
+        logQuery(`sqlite> INSERT INTO person (id, name) VALUES ('${p.id}', '${p.name}');`, 'insert');
+        p.pronounSetIds.forEach(setId => {
+          logQuery(`sqlite> INSERT INTO person_pronoun_cross_ref (person_id, pronoun_set_id) VALUES ('${p.id}', '${setId}');`, 'insert');
+        });
+      });
+
+      logQuery(`RoomDB [SUCCESS]: Loaded shared configuration from link. Synced ${validatedSets.length} pronoun sets and ${validatedPeople.length} people profiles.`, 'success');
+      generateSessionDeck(practiceFocus, validatedSets, validatedPeople);
+      setSharedImportData(null);
+    } catch (e) {
+      console.error("Failed to import shared configuration", e);
+      alert("An error occurred while loading the shared data.");
     }
   };
 
@@ -1492,6 +1590,97 @@ export default function App() {
             >
               Got it, thanks!
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Shared Profile Import Modal */}
+      {sharedImportData && (
+        <div className="fixed inset-0 bg-[#0F172A]/40 dark:bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 rounded-[16px] max-w-md w-full p-6 shadow-xl relative animate-in fade-in zoom-in-95 duration-200 text-left">
+            <button
+              type="button"
+              onClick={() => setSharedImportData(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-slate-800 text-neutral-500 dark:text-neutral-400 cursor-pointer transition-colors"
+              aria-label="Close dialog"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex flex-col gap-3 mb-5">
+              <div className="w-12 h-12 rounded-[12px] bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-2xs">
+                <Sparkles className="w-6 h-6 text-indigo-500 animate-bounce" />
+              </div>
+              <h3 className="font-serif italic font-bold text-lg text-[#0F172A] dark:text-slate-100">
+                Shared Profile Found!
+              </h3>
+              <p className="text-xs text-neutral-500 dark:text-slate-400 font-light leading-relaxed">
+                Someone has shared a prepopulated PronounPocket configuration with you! Loading it will update your active database with their personalized neopronoun and name sets.
+              </p>
+            </div>
+
+            <div className="p-4 bg-[#FDFBF7] dark:bg-slate-950/40 border border-neutral-200/80 dark:border-slate-800 rounded-[12px] space-y-3.5 mb-6">
+              <span className="font-bold text-[8.5px] text-[#4338CA] dark:text-indigo-400 uppercase tracking-widest block font-mono">
+                Included in Link:
+              </span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <span className="text-xl font-light font-serif text-[#0F172A] dark:text-slate-100">
+                    {sharedImportData.pronounSets.length}
+                  </span>
+                  <span className="text-[9px] font-bold text-neutral-400 dark:text-slate-500 uppercase tracking-wider">
+                    Pronoun Sets
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xl font-light font-serif text-[#0F172A] dark:text-slate-100">
+                    {sharedImportData.people.length}
+                  </span>
+                  <span className="text-[9px] font-bold text-neutral-400 dark:text-slate-500 uppercase tracking-wider">
+                    Saved People
+                  </span>
+                </div>
+              </div>
+              
+              {/* Preview some pronoun sets */}
+              <div className="pt-3 border-t border-neutral-100 dark:border-slate-850/50">
+                <span className="text-[8px] font-bold text-neutral-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">
+                  Pronouns Preview:
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {sharedImportData.pronounSets.slice(0, 4).map((set, idx) => (
+                    <span 
+                      key={idx}
+                      className="text-[9px] font-mono font-bold bg-white dark:bg-slate-950 border border-neutral-200 dark:border-slate-800 text-neutral-600 dark:text-slate-300 px-2 py-0.5 rounded"
+                    >
+                      {set.subject}/{set.object}
+                    </span>
+                  ))}
+                  {sharedImportData.pronounSets.length > 4 && (
+                    <span className="text-[9px] font-mono text-neutral-400 dark:text-slate-500 px-1">
+                      +{sharedImportData.pronounSets.length - 4} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setSharedImportData(null)}
+                className="flex-1 py-2.5 bg-white hover:bg-neutral-50 dark:bg-slate-950 dark:hover:bg-slate-900 border border-neutral-200 dark:border-slate-800 text-neutral-700 dark:text-slate-300 rounded-[12px] text-xs font-semibold cursor-pointer transition-colors text-center"
+              >
+                Decline
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSharedImport}
+                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[12px] text-xs font-semibold cursor-pointer transition-colors shadow-sm text-center"
+              >
+                Import & Practice
+              </button>
+            </div>
           </div>
         </div>
       )}

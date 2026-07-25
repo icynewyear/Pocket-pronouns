@@ -18,7 +18,9 @@ import {
   Upload,
   Download,
   ArrowRight,
-  Users
+  Users,
+  Link2,
+  Share2
 } from 'lucide-react';
 import { PronounSet, PracticeSentence, Person, SessionCard } from '../types';
 
@@ -139,6 +141,44 @@ export default function PhoneSimulator({
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [personName, setPersonName] = useState('');
   const [personPronounIds, setPersonPronounIds] = useState<string[]>([]);
+
+  // Prepopulated link generation state & handler
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
+  const [githubPagesUrl, setGithubPagesUrl] = useState(() => {
+    return localStorage.getItem('pronoun_pocket_github_pages_url') || 'https://icynewyear.github.io/Pocket-pronouns/';
+  });
+
+  const handleGenerateShareLink = () => {
+    try {
+      const dataToShare = {
+        app: 'PronounPocket',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        pronounSets,
+        people
+      };
+      const base64String = btoa(unescape(encodeURIComponent(JSON.stringify(dataToShare))));
+      
+      // If we are currently running on GitHub Pages, use the current address
+      // Otherwise, use the user-configured GitHub Pages base URL
+      let baseUrl = githubPagesUrl;
+      if (window.location.hostname.endsWith('github.io')) {
+        baseUrl = window.location.origin + window.location.pathname;
+      }
+      
+      // Ensure baseUrl ends with a slash or matches cleanly
+      const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+      const shareUrl = `${cleanBaseUrl}?share=${encodeURIComponent(base64String)}`;
+      
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        setCopiedShareLink(true);
+        setTimeout(() => setCopiedShareLink(false), 2000);
+      });
+    } catch (e) {
+      console.error("Failed to generate share link:", e);
+      alert("Could not generate share link.");
+    }
+  };
 
   // Helper to replace placeholder with appropriate form
   const getCorrectPronounValue = (set: PronounSet, type: string) => {
@@ -885,33 +925,96 @@ export default function PhoneSimulator({
               </div>
 
               {/* Backup & Restore Settings Panel */}
-              <div className="bg-neutral-50 dark:bg-slate-900/40 rounded-[12px] p-4 border border-neutral-200 dark:border-slate-850 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors">
-                <div className="flex flex-col gap-0.5 text-left">
+              <div className="bg-neutral-50 dark:bg-slate-900/40 rounded-[12px] p-4 border border-neutral-200 dark:border-slate-850 flex flex-col gap-4 transition-colors text-left">
+                <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[#4338CA] dark:text-indigo-400 font-mono">
-                    Backup & Synchronization
+                    Backup, Sync & Share
                   </span>
                   <h4 className="text-xs font-bold text-neutral-800 dark:text-slate-200">
-                    Import or Export App Data
+                    Configuration Portability
                   </h4>
                   <p className="text-[11px] text-neutral-500 dark:text-slate-400 font-light leading-relaxed">
-                    Save your custom pronoun configurations, practice histories, mastery achievements, and streak counts to a backup file, or restore them.
+                    Generate a prepopulated link loaded with your custom pronouns and names to share with others, or export/import raw JSON database files.
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2.5 w-full md:w-auto">
+
+                <div className="p-3 bg-white dark:bg-slate-950 border border-neutral-200/80 dark:border-slate-850/80 rounded-[8px] flex flex-col gap-2.5">
+                  <span className="text-[9px] font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-widest font-mono flex items-center gap-1">
+                    <Share2 className="w-3.5 h-3.5 text-indigo-500" />
+                    GitHub Pages Share Link
+                  </span>
+                  <p className="text-[10px] text-neutral-500 dark:text-slate-400 leading-normal font-light">
+                    Generate a link containing your current <span className="font-semibold text-neutral-700 dark:text-slate-300">{pronounSets.length} pronoun sets</span> and <span className="font-semibold text-neutral-700 dark:text-slate-300">{people.length} profiles</span>. When users click the link, your custom configuration will automatically load on their device.
+                  </p>
+
+                  {/* GitHub Pages base URL config */}
+                  <div className="flex flex-col gap-1 mt-1">
+                    <label className="text-[9px] font-bold uppercase tracking-wider text-neutral-400 dark:text-slate-500">
+                      GitHub Pages Host URL
+                    </label>
+                    {window.location.hostname.endsWith('github.io') ? (
+                      <div className="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] rounded-[6px] font-mono font-medium flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Live: {window.location.origin + window.location.pathname}
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <input
+                          type="url"
+                          value={githubPagesUrl}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setGithubPagesUrl(val);
+                            localStorage.setItem('pronoun_pocket_github_pages_url', val);
+                          }}
+                          placeholder="https://icynewyear.github.io/Pocket-pronouns/"
+                          className="w-full px-2.5 py-1.5 text-[11px] bg-neutral-50 dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 rounded-[6px] text-neutral-700 dark:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-indigo-500 font-mono"
+                        />
+                        <p className="text-[9px] text-neutral-400 dark:text-slate-500 leading-relaxed font-light">
+                          Configure your deployment address so that shared links generated here in AI Studio will point users to your live GitHub Pages site.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGenerateShareLink}
+                    className={`flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider rounded-[6px] transition-all cursor-pointer shadow-2xs font-sans w-full ${
+                      copiedShareLink 
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        : 'bg-[#0F172A] hover:bg-neutral-800 dark:bg-indigo-650 dark:hover:bg-indigo-700 text-white'
+                    }`}
+                  >
+                    {copiedShareLink ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-white" />
+                        <span>Shareable Link Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Link2 className="w-3.5 h-3.5 text-indigo-200" />
+                        <span>Generate & Copy Share Link</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2.5 w-full">
                   {/* Export Button */}
                   <button
                     type="button"
                     onClick={handleExportSettings}
-                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider text-neutral-700 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-neutral-50 dark:hover:bg-slate-800 border border-neutral-200 dark:border-slate-800 rounded-[6px] transition-all cursor-pointer shadow-2xs font-sans"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider text-neutral-700 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-neutral-50 dark:hover:bg-slate-800 border border-neutral-200 dark:border-slate-800 rounded-[6px] transition-all cursor-pointer shadow-2xs font-sans"
                   >
                     <Download className="w-3.5 h-3.5 text-neutral-500 dark:text-slate-400" />
-                    <span>Export Settings</span>
+                    <span>Export JSON Backup</span>
                   </button>
 
                   {/* Import Button */}
-                  <label className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 rounded-[6px] transition-all cursor-pointer shadow-2xs font-sans">
+                  <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 rounded-[6px] transition-all cursor-pointer shadow-2xs font-sans">
                     <Upload className="w-3.5 h-3.5 text-indigo-100" />
-                    <span>Import Settings</span>
+                    <span>Import JSON Backup</span>
                     <input
                       type="file"
                       accept=".json"
