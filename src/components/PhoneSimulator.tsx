@@ -109,42 +109,42 @@ export default function PhoneSimulator({
       </div>
       
       {/* Screen Content Wrapper */}
-      <div className="relative flex-1 bg-[#FDFBF7] rounded-[34px] flex flex-col overflow-hidden border border-neutral-950/10">
+      <div className="relative flex-1 bg-[#FDFBF7] dark:bg-slate-950 rounded-[34px] flex flex-col overflow-hidden border border-neutral-950/10 dark:border-slate-900 transition-colors duration-150">
         
         {/* Phone Status Bar */}
-        <div className="h-7 pt-1 px-5 flex justify-between items-center bg-[#FDFBF7] border-b border-[#EEF2FF] text-[10px] font-mono text-neutral-800 font-bold z-40 select-none">
+        <div className="h-7 pt-1 px-5 flex justify-between items-center bg-[#FDFBF7] dark:bg-slate-950 border-b border-[#EEF2FF] dark:border-slate-900 text-[10px] font-mono text-neutral-800 dark:text-slate-300 font-bold z-40 select-none transition-colors">
           <span>{timeString}</span>
           <div className="w-14 h-4"></div>
           <div className="flex items-center gap-1">
-            <span className="text-[8px] font-mono font-medium uppercase tracking-wider text-neutral-500 mr-1">Google Fi</span>
+            <span className="text-[8px] font-mono font-medium uppercase tracking-wider text-neutral-500 dark:text-slate-400 mr-1">Google Fi</span>
             <div className="flex gap-0.5 items-end h-2.5">
-              <div className="w-[2px] h-[3px] bg-neutral-800 rounded-xs"></div>
-              <div className="w-[2px] h-[5px] bg-neutral-800 rounded-xs"></div>
-              <div className="w-[2px] h-[7px] bg-neutral-800 rounded-xs"></div>
-              <div className="w-[2px] h-[9px] bg-neutral-800 rounded-xs"></div>
+              <div className="w-[2px] h-[3px] bg-neutral-800 dark:bg-slate-300 rounded-xs"></div>
+              <div className="w-[2px] h-[5px] bg-neutral-800 dark:bg-slate-300 rounded-xs"></div>
+              <div className="w-[2px] h-[7px] bg-neutral-800 dark:bg-slate-300 rounded-xs"></div>
+              <div className="w-[2px] h-[9px] bg-neutral-800 dark:bg-slate-300 rounded-xs"></div>
             </div>
-            <Wifi className="w-3 h-3 text-neutral-800" />
+            <Wifi className="w-3 h-3 text-neutral-800 dark:text-slate-300" />
             <div className="flex items-center gap-0.5">
-              <Battery className="w-3.5 h-3.5 text-neutral-800" />
+              <Battery className="w-3.5 h-3.5 text-neutral-800 dark:text-slate-300" />
               <span className="text-[8.5px]">98%</span>
             </div>
           </div>
         </div>
 
         {/* Screen App Action Bar */}
-        <div className="bg-white/90 backdrop-blur-xs px-4 py-2.5 border-b border-neutral-200 flex justify-between items-center z-30 select-none">
+        <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs px-4 py-2.5 border-b border-neutral-200 dark:border-slate-800/80 flex justify-between items-center z-30 select-none transition-colors">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-[4px] bg-[#0F172A] flex items-center justify-center text-white text-[10px] shadow-xs">
+            <div className="w-6 h-6 rounded-[4px] bg-[#0F172A] dark:bg-indigo-650 flex items-center justify-center text-white text-[10px] shadow-xs">
               <Sparkles className="w-3 h-3 text-[#EEF2FF]" />
             </div>
-            <span className="font-serif italic font-bold text-xs tracking-tight text-[#0F172A]">PronounPocket</span>
+            <span className="font-serif italic font-bold text-xs tracking-tight text-[#0F172A] dark:text-slate-100">PronounPocket</span>
           </div>
           
           <div className="flex items-center gap-1.5 text-[9px] font-bold text-neutral-500">
-            <span className="flex items-center gap-0.5 bg-[#EEF2FF] text-[#0F172A] px-1.5 py-0.5 rounded-[4px] border border-[#EEF2FF]/30">
+            <span className="flex items-center gap-0.5 bg-[#EEF2FF] dark:bg-indigo-950/60 text-[#0F172A] dark:text-indigo-300 px-1.5 py-0.5 rounded-[4px] border border-[#EEF2FF]/30 dark:border-indigo-900/40">
               🔥 {streak}
             </span>
-            <span className="flex items-center gap-0.5 bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-[4px] border border-emerald-200">
+            <span className="flex items-center gap-0.5 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded-[4px] border border-emerald-200 dark:border-emerald-900/50">
               🏆 {masteredCount}/{pronounSets.length}
             </span>
           </div>
@@ -155,10 +155,10 @@ export default function PhoneSimulator({
           
           {/* Tab: STUDY inside phone */}
           {currentPhoneTab === 'study' && (
-            <div className="flex flex-col gap-3 animate-in fade-in duration-200 text-[#0F172A]">
+            <div className="flex flex-col gap-3 animate-in fade-in duration-200 text-[#0F172A] dark:text-slate-100">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Study Practice</span>
-                <span className="text-[9px] uppercase tracking-wider font-semibold px-2 py-0.5 bg-white border border-neutral-200 rounded-[4px] text-neutral-500">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-slate-400">Study Practice</span>
+                <span className="text-[9px] uppercase tracking-wider font-semibold px-2 py-0.5 bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 rounded-[4px] text-neutral-500 dark:text-slate-400">
                   Card {sessionDeck.length > 0 ? currentCardIndex + 1 : 0}/{sessionDeck.length}
                 </span>
               </div>
@@ -172,37 +172,37 @@ export default function PhoneSimulator({
                     <div className={`relative w-full h-full transition-transform duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
                       
                       {/* FRONT */}
-                      <div className="absolute inset-0 w-full h-full rounded-[12px] bg-white border border-neutral-200 p-5 flex flex-col justify-between shadow-sm [backface-visibility:hidden]">
+                      <div className="absolute inset-0 w-full h-full rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 p-5 flex flex-col justify-between shadow-sm [backface-visibility:hidden]">
                         <div className="flex justify-between items-start">
-                          <span className="text-[8px] font-bold uppercase tracking-widest text-[#0F172A] bg-[#EEF2FF] border border-[#EEF2FF]/40 px-2 py-0.5 rounded-[4px]">
+                          <span className="text-[8px] font-bold uppercase tracking-widest text-[#0F172A] dark:text-indigo-300 bg-[#EEF2FF] dark:bg-indigo-950/60 border border-[#EEF2FF]/40 dark:border-indigo-900/40 px-2 py-0.5 rounded-[4px]">
                             {sessionDeck[currentCardIndex].sentence.type.toUpperCase()}
                           </span>
-                          <span className="text-[8px] text-neutral-400 flex items-center gap-1 font-semibold uppercase tracking-wider">
+                          <span className="text-[8px] text-neutral-400 dark:text-slate-500 flex items-center gap-1 font-semibold uppercase tracking-wider">
                             <RotateCw className="w-2.5 h-2.5" /> Tap to flip
                           </span>
                         </div>
 
                         <div className="text-center my-3">
-                          <div className="text-base font-light text-[#0F172A] leading-relaxed font-serif italic">
+                          <div className="text-base font-light text-[#0F172A] dark:text-slate-200 leading-relaxed font-serif italic">
                             {formatSentence(sessionDeck[currentCardIndex].sentence, sessionDeck[currentCardIndex].set, false)}
                           </div>
                         </div>
 
-                        <div className="bg-[#FDFBF7] rounded-[8px] p-2 text-center border border-neutral-200/60">
+                        <div className="bg-[#FDFBF7] dark:bg-slate-950/40 rounded-[8px] p-2 text-center border border-neutral-200/60 dark:border-slate-800/80">
                           {sessionDeck[currentCardIndex].set.associatedNames ? (
                             <div className="flex flex-col">
-                              <span className="text-[8px] uppercase tracking-widest text-[#4338CA] font-bold block mb-0.5">PRACTICING FOR:</span>
-                              <span className="text-xs font-bold text-[#4338CA] capitalize">
+                              <span className="text-[8px] uppercase tracking-widest text-[#4338CA] dark:text-indigo-400 font-bold block mb-0.5">PRACTICING FOR:</span>
+                              <span className="text-xs font-bold text-[#4338CA] dark:text-indigo-300 capitalize">
                                 {sessionDeck[currentCardIndex].set.associatedNames}
                               </span>
-                              <span className="text-[7.5px] text-neutral-400 mt-1 uppercase font-mono font-bold tracking-tight">
+                              <span className="text-[7.5px] text-neutral-400 dark:text-slate-500 mt-1 uppercase font-mono font-bold tracking-tight">
                                 ({sessionDeck[currentCardIndex].set.subject} / {sessionDeck[currentCardIndex].set.object} / {sessionDeck[currentCardIndex].set.possessiveDet})
                               </span>
                             </div>
                           ) : (
                             <>
-                              <span className="text-[8px] uppercase tracking-widest text-neutral-400 font-bold block mb-0.5">TARGET PRONOUN SET:</span>
-                              <span className="text-xs font-bold text-[#0F172A] capitalize">
+                              <span className="text-[8px] uppercase tracking-widest text-neutral-400 dark:text-slate-500 font-bold block mb-0.5">TARGET PRONOUN SET:</span>
+                              <span className="text-xs font-bold text-[#0F172A] dark:text-slate-200 capitalize">
                                 {sessionDeck[currentCardIndex].set.subject} / {sessionDeck[currentCardIndex].set.object} / {sessionDeck[currentCardIndex].set.possessiveDet}
                               </span>
                             </>
@@ -211,33 +211,33 @@ export default function PhoneSimulator({
                       </div>
 
                       {/* BACK */}
-                      <div className="absolute inset-0 w-full h-full rounded-[12px] bg-white border border-neutral-200 p-5 flex flex-col justify-between shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]">
+                      <div className="absolute inset-0 w-full h-full rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 p-5 flex flex-col justify-between shadow-sm [backface-visibility:hidden] [transform:rotateY(180deg)]">
                         <div className="flex justify-between items-start">
-                          <span className="text-[8px] font-bold uppercase tracking-widest text-[#0F172A] bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-[4px]">
+                          <span className="text-[8px] font-bold uppercase tracking-widest text-[#0F172A] dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/40 px-2 py-0.5 rounded-[4px]">
                             REVEALED
                           </span>
-                          <span className="text-[8px] text-neutral-400 font-semibold uppercase tracking-wider">Correct Form</span>
+                          <span className="text-[8px] text-neutral-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Correct Form</span>
                         </div>
 
-                        <div className="text-center my-3 text-base font-light text-[#0F172A] leading-relaxed">
+                        <div className="text-center my-3 text-base font-light text-[#0F172A] dark:text-slate-200 leading-relaxed">
                           {formatSentence(sessionDeck[currentCardIndex].sentence, sessionDeck[currentCardIndex].set, true)}
                         </div>
 
                         {/* Mini forms checklist inside card back */}
-                        <div className="grid grid-cols-5 gap-0.5 text-[8px] font-mono text-center bg-[#FDFBF7] p-1.5 rounded-[6px] border border-neutral-200">
-                          <div className={sessionDeck[currentCardIndex].sentence.type === 'subject' ? 'font-bold text-[#0F172A] bg-indigo-100 rounded-xs' : 'text-neutral-400'}>
+                        <div className="grid grid-cols-5 gap-0.5 text-[8px] font-mono text-center bg-[#FDFBF7] dark:bg-slate-950/40 p-1.5 rounded-[6px] border border-neutral-200 dark:border-slate-800">
+                          <div className={sessionDeck[currentCardIndex].sentence.type === 'subject' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
                             <span>{sessionDeck[currentCardIndex].set.subject}</span>
                           </div>
-                          <div className={sessionDeck[currentCardIndex].sentence.type === 'object' ? 'font-bold text-[#0F172A] bg-indigo-100 rounded-xs' : 'text-neutral-400'}>
+                          <div className={sessionDeck[currentCardIndex].sentence.type === 'object' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
                             <span>{sessionDeck[currentCardIndex].set.object}</span>
                           </div>
-                          <div className={sessionDeck[currentCardIndex].sentence.type === 'possessiveDet' ? 'font-bold text-[#0F172A] bg-indigo-100 rounded-xs' : 'text-neutral-400'}>
+                          <div className={sessionDeck[currentCardIndex].sentence.type === 'possessiveDet' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
                             <span>{sessionDeck[currentCardIndex].set.possessiveDet}</span>
                           </div>
-                          <div className={sessionDeck[currentCardIndex].sentence.type === 'possessivePro' ? 'font-bold text-[#0F172A] bg-indigo-100 rounded-xs' : 'text-neutral-400'}>
+                          <div className={sessionDeck[currentCardIndex].sentence.type === 'possessivePro' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
                             <span>{sessionDeck[currentCardIndex].set.possessivePro}</span>
                           </div>
-                          <div className={sessionDeck[currentCardIndex].sentence.type === 'reflexive' ? 'font-bold text-[#0F172A] bg-indigo-100 rounded-xs' : 'text-neutral-400'}>
+                          <div className={sessionDeck[currentCardIndex].sentence.type === 'reflexive' ? 'font-bold text-[#0F172A] dark:text-indigo-200 bg-indigo-100 dark:bg-indigo-950/80 rounded-xs' : 'text-neutral-400 dark:text-slate-500'}>
                             <span>{sessionDeck[currentCardIndex].set.reflexive}</span>
                           </div>
                         </div>
@@ -251,7 +251,7 @@ export default function PhoneSimulator({
                     {!isFlipped ? (
                       <button
                         onClick={() => setIsFlipped(true)}
-                        className="w-full flex items-center justify-center gap-2 py-3 px-3 rounded-[8px] bg-[#0F172A] hover:bg-neutral-800 text-white font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer shadow-sm"
+                        className="w-full flex items-center justify-center gap-2 py-3 px-3 rounded-[8px] bg-[#0F172A] dark:bg-indigo-600 hover:bg-neutral-800 dark:hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer shadow-sm"
                         style={{ minHeight: '44px' }}
                       >
                         <RefreshCw className="w-3.5 h-3.5 text-indigo-300 animate-spin-slow" />
@@ -261,7 +261,7 @@ export default function PhoneSimulator({
                       <div className="grid grid-cols-2 gap-2.5">
                         <button
                           onClick={() => handleCardRating(false)}
-                          className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-[8px] border border-red-200 bg-red-50 hover:bg-red-100/80 text-red-700 font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer"
+                          className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-[8px] border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 hover:bg-red-100/80 dark:hover:bg-red-900/20 text-red-700 dark:text-red-400 font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer"
                           style={{ minHeight: '44px' }}
                         >
                           <X className="w-3.5 h-3.5 text-red-500" />
@@ -269,7 +269,7 @@ export default function PhoneSimulator({
                         </button>
                         <button
                           onClick={() => handleCardRating(true)}
-                          className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-[8px] border border-emerald-200 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-800 font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer"
+                          className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-[8px] border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer"
                           style={{ minHeight: '44px' }}
                         >
                           <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -280,12 +280,12 @@ export default function PhoneSimulator({
                   </div>
                 </div>
               ) : pronounSets.length > 0 ? (
-                <div className="text-center py-8 bg-white rounded-[12px] border border-neutral-200 px-5 flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-500 mb-3">
+                <div className="text-center py-8 bg-white dark:bg-slate-900 rounded-[12px] border border-neutral-200 dark:border-slate-800 px-5 flex flex-col items-center">
+                  <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-500 dark:text-indigo-400 mb-3">
                     <Sparkles className="w-5 h-5" />
                   </div>
-                  <h3 className="text-xs font-bold text-[#0F172A] mb-1 font-serif italic">All Pronoun Sets Disabled</h3>
-                  <p className="text-[10.5px] text-neutral-400 mb-4 font-light leading-relaxed">
+                  <h3 className="text-xs font-bold text-[#0F172A] dark:text-slate-100 mb-1 font-serif italic">All Pronoun Sets Disabled</h3>
+                  <p className="text-[10.5px] text-neutral-400 dark:text-slate-400 mb-4 font-light leading-relaxed">
                     You have pronoun sets in your library, but they are all deactivated. Activate them to start your study practice session!
                   </p>
                   <div className="flex flex-col gap-2 w-full">
@@ -297,18 +297,18 @@ export default function PhoneSimulator({
                     </button>
                     <button 
                       onClick={() => setActiveTab('library')}
-                      className="w-full py-2 bg-white hover:bg-neutral-50 border border-neutral-200 text-neutral-700 rounded-[8px] uppercase text-[9px] tracking-wider font-bold transition cursor-pointer"
+                      className="w-full py-2 bg-white dark:bg-slate-900 hover:bg-neutral-50 dark:hover:bg-slate-800 border border-neutral-200 dark:border-slate-800 text-neutral-700 dark:text-slate-300 rounded-[8px] uppercase text-[9px] tracking-wider font-bold transition cursor-pointer"
                     >
                       Manage Library
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8 bg-white rounded-[12px] border border-neutral-200 px-4">
-                  <p className="text-[11px] text-neutral-400 mb-3 font-light">No pronouns currently saved in database. Tap below to re-seed or add!</p>
+                <div className="text-center py-8 bg-white dark:bg-slate-900 rounded-[12px] border border-neutral-200 dark:border-slate-800 px-4">
+                  <p className="text-[11px] text-neutral-400 dark:text-slate-400 mb-3 font-light">No pronouns currently saved in database. Tap below to re-seed or add!</p>
                   <button 
                     onClick={() => setActiveTab('library')}
-                    className="px-4 py-2 bg-[#0F172A] text-white rounded-[6px] uppercase text-[9px] tracking-wider font-bold transition cursor-pointer"
+                    className="px-4 py-2 bg-[#0F172A] dark:bg-indigo-600 hover:bg-neutral-800 dark:hover:bg-indigo-700 text-white rounded-[6px] uppercase text-[9px] tracking-wider font-bold transition cursor-pointer"
                   >
                     Configure Library
                   </button>
@@ -316,10 +316,10 @@ export default function PhoneSimulator({
               )}
 
               {/* Spaced Repetition Info */}
-              <div className="p-3 rounded-[12px] bg-indigo-50 border border-indigo-100 text-[10.5px]">
-                <span className="font-bold text-indigo-900 uppercase tracking-wider text-[8px] block mb-0.5">Spaced Repetition Tip</span>
-                <p className="text-indigo-800 leading-relaxed font-light">
-                  Our local SQLite database assigns a mastery factor. Getting the pronoun correct 3 times in different syntactic frames tags it as <span className="font-serif italic text-[#0F172A]">Mastered</span>!
+              <div className="p-3 rounded-[12px] bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/30 text-[10.5px] transition-colors">
+                <span className="font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-wider text-[8px] block mb-0.5">Spaced Repetition Tip</span>
+                <p className="text-indigo-800 dark:text-indigo-450 leading-relaxed font-light">
+                  Our local SQLite database assigns a mastery factor. Getting the pronoun correct 3 times in different syntactic frames tags it as <span className="font-serif italic text-[#0F172A] dark:text-slate-200">Mastered</span>!
                 </p>
               </div>
             </div>
@@ -327,49 +327,49 @@ export default function PhoneSimulator({
 
           {/* Tab: LEARN inside phone */}
           {currentPhoneTab === 'learn' && (
-            <div className="flex flex-col gap-3 animate-in fade-in duration-200 text-[#0F172A]">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Grammar Guide</span>
-              <p className="text-[10.5px] text-neutral-500 font-light leading-relaxed">
+            <div className="flex flex-col gap-3 animate-in fade-in duration-200 text-[#0F172A] dark:text-slate-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-slate-400">Grammar Guide</span>
+              <p className="text-[10.5px] text-neutral-500 dark:text-slate-400 font-light leading-relaxed">
                 Neopronouns plug seamlessly into standard English verbs exactly like traditional pronouns. Here are the five forms:
               </p>
 
               <div className="flex flex-col gap-2.5 max-h-[460px] overflow-y-auto pr-0.5">
-                <div className="p-3 rounded-[8px] bg-white border border-neutral-200">
-                  <span className="font-serif italic font-bold text-xs text-[#0F172A] block">1. Subject (Nominative)</span>
-                  <p className="text-[10px] text-neutral-400 mt-0.5 font-light">Used as the subject of the clause.</p>
-                  <code className="text-[10px] block mt-1.5 text-[#0F172A] bg-[#FDFBF7] px-2 py-1 rounded-[4px] border border-neutral-200/50 font-mono">
+                <div className="p-3 rounded-[8px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800">
+                  <span className="font-serif italic font-bold text-xs text-[#0F172A] dark:text-slate-100 block">1. Subject (Nominative)</span>
+                  <p className="text-[10px] text-neutral-400 dark:text-slate-400 mt-0.5 font-light">Used as the subject of the clause.</p>
+                  <code className="text-[10px] block mt-1.5 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2 py-1 rounded-[4px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
                     "<strong>Subject</strong> likes to read."
                   </code>
                 </div>
 
-                <div className="p-3 rounded-[8px] bg-white border border-neutral-200">
-                  <span className="font-serif italic font-bold text-xs text-[#0F172A] block">2. Object (Accusative)</span>
-                  <p className="text-[10px] text-neutral-400 mt-0.5 font-light">The receiver of action in the clause.</p>
-                  <code className="text-[10px] block mt-1.5 text-[#0F172A] bg-[#FDFBF7] px-2 py-1 rounded-[4px] border border-neutral-200/50 font-mono">
+                <div className="p-3 rounded-[8px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800">
+                  <span className="font-serif italic font-bold text-xs text-[#0F172A] dark:text-slate-100 block">2. Object (Accusative)</span>
+                  <p className="text-[10px] text-neutral-400 dark:text-slate-400 mt-0.5 font-light">The receiver of action in the clause.</p>
+                  <code className="text-[10px] block mt-1.5 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2 py-1 rounded-[4px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
                     "I went with <strong>Object</strong>."
                   </code>
                 </div>
 
-                <div className="p-3 rounded-[8px] bg-white border border-neutral-200">
-                  <span className="font-serif italic font-bold text-xs text-[#0F172A] block">3. Possessive Determiner</span>
-                  <p className="text-[10px] text-neutral-400 mt-0.5 font-light">Modifies noun to indicate ownership.</p>
-                  <code className="text-[10px] block mt-1.5 text-[#0F172A] bg-[#FDFBF7] px-2 py-1 rounded-[4px] border border-neutral-200/50 font-mono">
+                <div className="p-3 rounded-[8px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800">
+                  <span className="font-serif italic font-bold text-xs text-[#0F172A] dark:text-slate-100 block">3. Possessive Determiner</span>
+                  <p className="text-[10px] text-neutral-400 dark:text-slate-400 mt-0.5 font-light">Modifies noun to indicate ownership.</p>
+                  <code className="text-[10px] block mt-1.5 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2 py-1 rounded-[4px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
                     "This is <strong>Poss. Det.</strong> book."
                   </code>
                 </div>
 
-                <div className="p-3 rounded-[8px] bg-white border border-neutral-200">
-                  <span className="font-serif italic font-bold text-xs text-[#0F172A] block">4. Possessive Pronoun</span>
-                  <p className="text-[10px] text-neutral-400 mt-0.5 font-light">Stands alone to show ownership.</p>
-                  <code className="text-[10px] block mt-1.5 text-[#0F172A] bg-[#FDFBF7] px-2 py-1 rounded-[4px] border border-neutral-200/50 font-mono">
+                <div className="p-3 rounded-[8px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800">
+                  <span className="font-serif italic font-bold text-xs text-[#0F172A] dark:text-slate-100 block">4. Possessive Pronoun</span>
+                  <p className="text-[10px] text-neutral-400 dark:text-slate-400 mt-0.5 font-light">Stands alone to show ownership.</p>
+                  <code className="text-[10px] block mt-1.5 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2 py-1 rounded-[4px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
                     "That opinion is <strong>Poss. Pro.</strong>."
                   </code>
                 </div>
 
-                <div className="p-3 rounded-[8px] bg-white border border-neutral-200">
-                  <span className="font-serif italic font-bold text-xs text-[#0F172A] block">5. Reflexive Form</span>
-                  <p className="text-[10px] text-neutral-400 mt-0.5 font-light">Refers back to subject clause.</p>
-                  <code className="text-[10px] block mt-1.5 text-[#0F172A] bg-[#FDFBF7] px-2 py-1 rounded-[4px] border border-neutral-200/50 font-mono">
+                <div className="p-3 rounded-[8px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800">
+                  <span className="font-serif italic font-bold text-xs text-[#0F172A] dark:text-slate-100 block">5. Reflexive Form</span>
+                  <p className="text-[10px] text-neutral-400 dark:text-slate-400 mt-0.5 font-light">Refers back to subject clause.</p>
+                  <code className="text-[10px] block mt-1.5 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2 py-1 rounded-[4px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
                     "Ze made coffee for <strong>Reflexive</strong>."
                   </code>
                 </div>
@@ -379,16 +379,16 @@ export default function PhoneSimulator({
 
           {/* Tab: LIBRARY inside phone */}
           {currentPhoneTab === 'library' && (
-            <div className="flex flex-col gap-3 animate-in fade-in duration-200 text-[#0F172A]">
+            <div className="flex flex-col gap-3 animate-in fade-in duration-200 text-[#0F172A] dark:text-slate-100">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Pronoun Database</span>
-                <span className="text-[9px] uppercase font-mono text-neutral-400">sqlite_local.db</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-slate-400 font-sans">Pronoun Database</span>
+                <span className="text-[9px] uppercase font-mono text-neutral-400 dark:text-slate-500">sqlite_local.db</span>
               </div>
 
               {/* Quick Bulk Activation Controls */}
-              <div className="bg-indigo-50/60 rounded-[12px] p-2.5 border border-indigo-100 flex flex-col gap-2">
+              <div className="bg-indigo-50/60 dark:bg-indigo-950/40 rounded-[12px] p-2.5 border border-indigo-100 dark:border-indigo-900/30 flex flex-col gap-2 transition-colors">
                 <div className="flex justify-between items-center">
-                  <span className="text-[9.5px] font-semibold text-indigo-900 flex items-center gap-1.5">
+                  <span className="text-[9.5px] font-semibold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
                     {pronounSets.filter(s => s.isEnabled !== false).length} of {pronounSets.length} sets active for practice
                   </span>
@@ -397,14 +397,14 @@ export default function PhoneSimulator({
                   <button
                     type="button"
                     onClick={() => handleToggleAll(true)}
-                    className="text-[8.5px] font-bold uppercase tracking-wider text-indigo-700 bg-white hover:bg-indigo-50 border border-indigo-200/80 py-1.5 rounded-[6px] transition-all cursor-pointer shadow-2xs text-center"
+                    className="text-[8.5px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/40 py-1.5 rounded-[6px] transition-all cursor-pointer shadow-2xs text-center font-sans"
                   >
                     Activate All
                   </button>
                   <button
                     type="button"
                     onClick={() => handleToggleAll(false)}
-                    className="text-[8.5px] font-bold uppercase tracking-wider text-neutral-600 bg-white hover:bg-neutral-50 border border-neutral-200 py-1.5 rounded-[6px] transition-all cursor-pointer shadow-2xs text-center"
+                    className="text-[8.5px] font-bold uppercase tracking-wider text-neutral-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-neutral-50 dark:hover:bg-slate-850 border border-neutral-200 dark:border-slate-800 py-1.5 rounded-[6px] transition-all cursor-pointer shadow-2xs text-center font-sans"
                   >
                     Deactivate All
                   </button>
@@ -416,10 +416,10 @@ export default function PhoneSimulator({
                   <div 
                     key={set.id}
                     onClick={() => setSelectedDetailsSet(set)}
-                    className={`p-3 rounded-[12px] border transition-all text-left cursor-pointer ${set.isEnabled === false ? 'opacity-65 bg-neutral-50/50' : 'bg-white'} ${selectedDetailsSet?.id === set.id ? 'border-[#0F172A] ring-1 ring-[#0F172A] shadow-xs' : 'border-neutral-200 hover:border-neutral-300'}`}
+                    className={`p-3 rounded-[12px] border transition-all text-left cursor-pointer ${set.isEnabled === false ? 'opacity-65 bg-neutral-50/50 dark:bg-slate-900/40' : 'bg-white dark:bg-slate-900'} ${selectedDetailsSet?.id === set.id ? 'border-[#0F172A] dark:border-indigo-500 ring-1 ring-[#0F172A] dark:ring-indigo-500 shadow-xs' : 'border-neutral-200 dark:border-slate-800 hover:border-neutral-300 dark:hover:border-slate-700'}`}
                   >
                     <div className="flex justify-between items-start">
-                      <span className="text-xs font-serif font-bold capitalize italic text-[#0F172A]">
+                      <span className="text-xs font-serif font-bold capitalize italic text-[#0F172A] dark:text-slate-100">
                         {set.subject} / {set.object}
                       </span>
                       <div className="flex gap-1.5 items-center">
@@ -432,25 +432,25 @@ export default function PhoneSimulator({
                           className="flex items-center gap-1.5 cursor-pointer group"
                           title={set.isEnabled !== false ? 'Deactivate set' : 'Activate set'}
                         >
-                          <span className={`text-[7.5px] font-bold uppercase tracking-wider ${set.isEnabled !== false ? 'text-emerald-700' : 'text-neutral-400'}`}>
+                          <span className={`text-[7.5px] font-bold uppercase tracking-wider ${set.isEnabled !== false ? 'text-emerald-700 dark:text-emerald-400' : 'text-neutral-400 dark:text-slate-500'}`}>
                             {set.isEnabled !== false ? 'Active' : 'Disabled'}
                           </span>
-                          <div className={`w-6.5 h-3.5 rounded-full p-0.5 transition-colors duration-200 ${set.isEnabled !== false ? 'bg-emerald-500' : 'bg-neutral-200'}`}>
+                          <div className={`w-6.5 h-3.5 rounded-full p-0.5 transition-colors duration-200 ${set.isEnabled !== false ? 'bg-emerald-500' : 'bg-neutral-200 dark:bg-slate-700'}`}>
                             <div className={`w-2.5 h-2.5 rounded-full bg-white shadow-xs transition-transform duration-200 ${set.isEnabled !== false ? 'translate-x-3' : 'translate-x-0'}`} />
                           </div>
                         </div>
 
                         {set.isMastered ? (
-                          <span className="text-[7.5px] uppercase font-bold tracking-wider bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-[4px] border border-emerald-200">
+                          <span className="text-[7.5px] uppercase font-bold tracking-wider bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded-[4px] border border-emerald-200 dark:border-emerald-900/40">
                             Mastered
                           </span>
                         ) : (
-                          <span className="text-[7.5px] uppercase font-bold tracking-wider bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded-[4px] border border-indigo-100">
+                          <span className="text-[7.5px] uppercase font-bold tracking-wider bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-[4px] border border-indigo-100 dark:border-indigo-900/40">
                             {Math.round((Object.values(set.correctAttempts || {}).reduce((a, b) => a + b, 0) / 15) * 100)}%
                           </span>
                         )}
                         {set.isCustom && (
-                          <span className="text-[7.5px] uppercase font-bold tracking-wider bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded-[4px] border border-amber-200">
+                          <span className="text-[7.5px] uppercase font-bold tracking-wider bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded-[4px] border border-amber-200 dark:border-amber-900/40">
                             User
                           </span>
                         )}
@@ -458,22 +458,22 @@ export default function PhoneSimulator({
                     </div>
 
                     {set.associatedNames && (
-                      <div className="mt-1 text-[9px] text-indigo-600 font-medium flex items-center gap-1">
-                        <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
+                      <div className="mt-1 text-[9px] text-indigo-600 dark:text-indigo-400 font-medium flex items-center gap-1">
+                        <span className="w-1 h-1 rounded-full bg-indigo-500 dark:bg-indigo-400"></span>
                         For: <strong className="font-semibold">{set.associatedNames}</strong>
                       </div>
                     )}
 
-                    <div className="flex gap-1 flex-wrap text-[8.5px] font-mono text-neutral-500 mt-1.5">
-                      <span className="bg-[#FDFBF7] px-1 rounded border border-neutral-200">{set.subject}</span>
-                      <span className="bg-[#FDFBF7] px-1 rounded border border-neutral-200">{set.object}</span>
-                      <span className="bg-[#FDFBF7] px-1 rounded border border-neutral-200">{set.possessiveDet}</span>
-                      <span className="bg-[#FDFBF7] px-1 rounded border border-neutral-200">{set.possessivePro}</span>
-                      <span className="bg-[#FDFBF7] px-1 rounded border border-neutral-200">{set.reflexive}</span>
+                    <div className="flex gap-1 flex-wrap text-[8.5px] font-mono text-neutral-500 dark:text-slate-400 mt-1.5">
+                      <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1 rounded border border-neutral-200 dark:border-slate-800">{set.subject}</span>
+                      <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1 rounded border border-neutral-200 dark:border-slate-800">{set.object}</span>
+                      <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1 rounded border border-neutral-200 dark:border-slate-800">{set.possessiveDet}</span>
+                      <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1 rounded border border-neutral-200 dark:border-slate-800">{set.possessivePro}</span>
+                      <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1 rounded border border-neutral-200 dark:border-slate-800">{set.reflexive}</span>
                     </div>
 
-                    <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-neutral-100 text-[9px]">
-                      <span className="text-[8px] uppercase tracking-wider text-neutral-400 font-bold">
+                    <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-neutral-100 dark:border-slate-800 text-[9px]">
+                      <span className="text-[8px] uppercase tracking-wider text-neutral-400 dark:text-slate-500 font-bold">
                         Reviews: {set.reviewCount}
                       </span>
                       <div className="flex gap-2">
@@ -482,13 +482,13 @@ export default function PhoneSimulator({
                             e.stopPropagation();
                             handleEditClick(set);
                           }}
-                          className="px-2 py-0.5 border border-neutral-200 rounded-[4px] font-bold uppercase tracking-wider text-[8px] text-neutral-500 hover:text-neutral-800 hover:bg-neutral-50 cursor-pointer"
+                          className="px-2 py-0.5 border border-neutral-200 dark:border-slate-800 rounded-[4px] font-bold uppercase tracking-wider text-[8px] text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-200 hover:bg-neutral-50 dark:hover:bg-slate-800 cursor-pointer"
                         >
                           Edit
                         </button>
                         <button
                           onClick={(e) => handleDeleteSet(set.id, e)}
-                          className="p-0.5 text-neutral-400 hover:text-red-600 rounded cursor-pointer"
+                          className="p-0.5 text-neutral-400 dark:text-slate-500 hover:text-red-600 rounded cursor-pointer"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -510,7 +510,7 @@ export default function PhoneSimulator({
                   setNewAssociatedNames('');
                   setIsAddModalOpen(true);
                 }}
-                className="absolute bottom-4 right-4 w-11 h-11 rounded-full bg-[#0F172A] hover:bg-neutral-800 text-white shadow-lg flex items-center justify-center transition-transform active:scale-95 cursor-pointer z-20 hover:scale-105"
+                className="absolute bottom-4 right-4 w-11 h-11 rounded-full bg-[#0F172A] dark:bg-indigo-650 hover:bg-neutral-800 dark:hover:bg-indigo-700 text-white shadow-lg flex items-center justify-center transition-transform active:scale-95 cursor-pointer z-20 hover:scale-105"
                 title="Add Custom Set"
               >
                 <Plus className="w-5 h-5 text-white" />
@@ -523,14 +523,14 @@ export default function PhoneSimulator({
         {/* Sliding Bottom Drawer inside Phone Bezel */}
         {isAddModalOpen && (
           <div className="absolute inset-0 bg-neutral-950/60 backdrop-blur-xs flex items-end justify-center z-50 animate-in fade-in duration-200">
-            <div className="bg-[#FDFBF7] w-full rounded-t-[20px] p-4 shadow-xl border-t border-neutral-300 flex flex-col gap-3 max-h-[85%] overflow-y-auto animate-in slide-in-from-bottom duration-300">
-              <div className="flex justify-between items-center pb-2 border-b border-neutral-200">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#0F172A]">
+            <div className="bg-[#FDFBF7] dark:bg-slate-900 w-full rounded-t-[20px] p-4 shadow-xl border-t border-neutral-300 dark:border-slate-800 flex flex-col gap-3 max-h-[85%] overflow-y-auto animate-in slide-in-from-bottom duration-300">
+              <div className="flex justify-between items-center pb-2 border-b border-neutral-200 dark:border-slate-800">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#0F172A] dark:text-slate-100">
                   {editingSet ? 'Room SQL: Edit Set' : 'Room SQL: Insert Set'}
                 </span>
                 <button 
                   onClick={() => setIsAddModalOpen(false)}
-                  className="p-1 rounded-full hover:bg-neutral-200/50 text-neutral-400 hover:text-[#0F172A] transition cursor-pointer"
+                  className="p-1 rounded-full hover:bg-neutral-200/50 dark:hover:bg-slate-800 text-neutral-400 hover:text-[#0F172A] dark:hover:text-white transition cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>

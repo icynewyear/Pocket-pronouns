@@ -6,7 +6,9 @@ import {
   Smartphone, 
   CheckCircle2, 
   Award, 
-  Heart
+  Heart,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { PronounSet, PracticeSentence, REQUIRED_CORRECT_ATTEMPTS } from './types';
 import PhoneSimulator from './components/PhoneSimulator';
@@ -196,6 +198,28 @@ export default function App() {
   
   // Kotlin sub-files tab
   const [selectedCodeFile, setSelectedCodeFile] = useState<'gradle' | 'theme' | 'room' | 'viewmodel' | 'ui'>('room');
+
+  // Dark mode theme state
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      return savedTheme === 'dark';
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  // Dark mode effect to toggle classes
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark');
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.body.classList.remove('dark');
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
 
   // Physical ticking clock for status bar
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -752,9 +776,9 @@ export default function App() {
     // Reveal pronoun styled with soft editorial highlight
     const parts = templateString.split("___");
     return (
-      <span className="font-serif italic font-normal text-[#0F172A]">
+      <span className="font-serif italic font-normal text-[#0F172A] dark:text-slate-200">
         {parts[0]}
-        <strong className="px-2.5 py-1 mx-1.5 rounded-[4px] bg-[#EEF2FF] text-[#4338CA] font-bold border-b-2 border-[#4338CA] inline-block not-italic text-xs">
+        <strong className="px-2.5 py-1 mx-1.5 rounded-[4px] bg-[#EEF2FF] dark:bg-indigo-950/70 text-[#4338CA] dark:text-indigo-300 font-bold border-b-2 border-[#4338CA] dark:border-indigo-500 inline-block not-italic text-xs">
           {displayPronoun}
         </strong>
         {parts[1]}
@@ -779,46 +803,56 @@ export default function App() {
   }).replace(/\s?[A-Za-z]+$/, '');
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-[#0F172A] flex flex-col font-sans selection:bg-indigo-100/80">
+    <div className="min-h-screen bg-[#FDFBF7] dark:bg-slate-950 text-[#0F172A] dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-100/80 selection:dark:bg-indigo-950/80 transition-colors duration-150">
       
       {/* Top Welcome Header - Unifying web & mobile */}
-      <header className="border-b border-neutral-200 bg-[#FDFBF7]/90 backdrop-blur-xs sticky top-0 z-30 px-6 py-4 select-none">
+      <header className="border-b border-neutral-200 dark:border-slate-850 bg-[#FDFBF7]/90 dark:bg-slate-950/90 backdrop-blur-xs sticky top-0 z-30 px-6 py-4 select-none">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[4px] bg-[#0F172A] flex items-center justify-center text-white shadow-sm shrink-0">
+            <div className="w-10 h-10 rounded-[4px] bg-[#0F172A] dark:bg-indigo-650 flex items-center justify-center text-white shadow-sm shrink-0">
               <Sparkles className="w-5 h-5 text-indigo-200" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-light tracking-tight text-[#0F172A]">
-                  Pronoun<span className="font-serif italic font-semibold text-[#0F172A]">Pocket</span>
+                <h1 className="text-xl font-light tracking-tight text-[#0F172A] dark:text-white">
+                  Pronoun<span className="font-serif italic font-semibold text-[#0F172A] dark:text-indigo-200">Pocket</span>
                 </h1>
-                <span className="text-[9px] uppercase tracking-widest font-bold border border-[#0F172A] text-[#0F172A] px-2 py-0.5 rounded-[4px] bg-white">
+                <span className="text-[9px] uppercase tracking-widest font-bold border border-[#0F172A] dark:border-indigo-500/50 text-[#0F172A] dark:text-indigo-300 px-2 py-0.5 rounded-[4px] bg-white dark:bg-slate-900">
                   Android Live Spec Simulator
                 </span>
               </div>
-              <p className="text-xs text-neutral-500 flex items-center gap-1 mt-0.5 font-light">
-                <Shield className="w-3.5 h-3.5 text-[#0F172A] shrink-0" />
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1 mt-0.5 font-light">
+                <Shield className="w-3.5 h-3.5 text-[#0F172A] dark:text-indigo-400 shrink-0" />
                 Offline-First Jetpack Compose & SQLite/Room DB Engine Emulator
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 rounded-[8px] border border-neutral-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-neutral-50 dark:hover:bg-slate-800 text-[#0F172A] dark:text-slate-100 transition-all cursor-pointer shadow-2xs flex items-center justify-center"
+              aria-label="Toggle dark mode"
+              title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {darkMode ? <Sun className="w-4.5 h-4.5 text-amber-400" /> : <Moon className="w-4.5 h-4.5 text-indigo-600" />}
+            </button>
+
             {/* Quick stats summarizing phone state */}
-            <div className="hidden md:flex items-center gap-4 bg-white/70 px-4 py-2 rounded-[4px] border border-neutral-200 text-xs font-medium">
-              <div className="flex items-center gap-1.5 text-neutral-500">
-                <Layers className="w-4 h-4 text-[#0F172A]" />
+            <div className="hidden md:flex items-center gap-4 bg-white/70 dark:bg-slate-900/70 px-4 py-2 rounded-[4px] border border-neutral-200 dark:border-slate-800 text-xs font-medium">
+              <div className="flex items-center gap-1.5 text-neutral-500 dark:text-slate-300">
+                <Layers className="w-4 h-4 text-[#0F172A] dark:text-indigo-400" />
                 <span>DB Rows: <strong>{pronounSets.length}</strong></span>
               </div>
-              <div className="w-px h-4 bg-neutral-200"></div>
-              <div className="flex items-center gap-1.5 text-neutral-500">
-                <CheckCircle2 className="w-4 h-4 text-[#0F172A]" />
+              <div className="w-px h-4 bg-neutral-200 dark:bg-slate-800"></div>
+              <div className="flex items-center gap-1.5 text-neutral-500 dark:text-slate-300">
+                <CheckCircle2 className="w-4 h-4 text-[#0F172A] dark:text-emerald-400" />
                 <span>Mastered: <strong>{masteredCount}</strong></span>
               </div>
-              <div className="w-px h-4 bg-neutral-200"></div>
-              <div className="flex items-center gap-1.5 text-neutral-500">
-                <Award className="w-4 h-4 text-[#0F172A]" />
+              <div className="w-px h-4 bg-neutral-200 dark:bg-slate-800"></div>
+              <div className="flex items-center gap-1.5 text-neutral-500 dark:text-slate-300">
+                <Award className="w-4 h-4 text-[#0F172A] dark:text-amber-400" />
                 <span>Streak: <strong>{streak}</strong></span>
               </div>
             </div>
@@ -902,15 +936,15 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-neutral-200 bg-white py-6 px-8 text-xs text-neutral-500 text-center select-none">
+      <footer className="mt-auto border-t border-neutral-200 dark:border-slate-800 bg-white dark:bg-slate-950 py-6 px-8 text-xs text-neutral-500 dark:text-neutral-400 text-center select-none transition-colors">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="flex items-center gap-1.5 font-light">
             Made with <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> to foster inclusion, normalize pronouns, and accelerate learning.
           </p>
           <div className="flex gap-4">
-            <span className="text-[#0F172A] font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 pb-0.5">Offline SQLite/Room Simulator</span>
-            <span className="text-[#0F172A] font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 pb-0.5">Jetpack Compose Layouts</span>
-            <span className="text-[#0F172A] font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 pb-0.5">MVVM StateFlow Architecture</span>
+            <span className="text-[#0F172A] dark:text-slate-300 font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 dark:border-slate-800 pb-0.5">Offline SQLite/Room Simulator</span>
+            <span className="text-[#0F172A] dark:text-slate-300 font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 dark:border-slate-800 pb-0.5">Jetpack Compose Layouts</span>
+            <span className="text-[#0F172A] dark:text-slate-300 font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 dark:border-slate-800 pb-0.5">MVVM StateFlow Architecture</span>
           </div>
         </div>
       </footer>

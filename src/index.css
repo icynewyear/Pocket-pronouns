@@ -13,8 +13,15 @@
   --color-border-editorial: #D1CFCD;
 }
 
+@variant dark (&:where(.dark, .dark *));
+
 body {
   background-color: #F8F5F2;
   color: #1A1A1A;
   font-family: var(--font-sans);
+}
+
+body.dark {
+  background-color: #0B0F19;
+  color: #F1F5F9;
 }
