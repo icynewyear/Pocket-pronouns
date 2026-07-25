@@ -1,0 +1,920 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Sparkles, 
+  Shield, 
+  Layers, 
+  Smartphone, 
+  CheckCircle2, 
+  Award, 
+  Heart
+} from 'lucide-react';
+import { PronounSet, PracticeSentence, REQUIRED_CORRECT_ATTEMPTS } from './types';
+import PhoneSimulator from './components/PhoneSimulator';
+import DevWorkbench from './components/DevWorkbench';
+
+// Default seeded neopronoun sets
+const DEFAULT_PRONOUNS: PronounSet[] = [
+  {
+    id: '1',
+    subject: 'ze',
+    object: 'zir',
+    possessiveDet: 'zir',
+    possessivePro: 'zirs',
+    reflexive: 'zirself',
+    isCustom: false,
+    isMastered: false,
+    reviewCount: 0,
+    notes: 'Commonly used as a gender-neutral alternative to he/she. Originated in transgender communities in the late 20th century.'
+  },
+  {
+    id: '2',
+    subject: 'xe',
+    object: 'xem',
+    possessiveDet: 'xyr',
+    possessivePro: 'xyrs',
+    reflexive: 'xemself',
+    isCustom: false,
+    isMastered: false,
+    reviewCount: 0,
+    notes: 'One of the most popular neopronouns. Pronounced zey, zem, zere, zeres, zemself.'
+  },
+  {
+    id: '3',
+    subject: 'fae',
+    object: 'faer',
+    possessiveDet: 'faer',
+    possessivePro: 'faers',
+    reflexive: 'faerself',
+    isCustom: false,
+    isMastered: false,
+    reviewCount: 0,
+    notes: 'A noun-self pronoun set inspired by faeries/the fae. Often used by individuals with a strong spiritual or thematic connection to nature.'
+  },
+  {
+    id: '4',
+    subject: 'ey',
+    object: 'em',
+    possessiveDet: 'eir',
+    possessivePro: 'eirs',
+    reflexive: 'emself',
+    isCustom: false,
+    isMastered: false,
+    reviewCount: 0,
+    notes: 'Sometimes referred to as Spivak pronouns, created by mathematician Michael Spivak in 1990.'
+  },
+  {
+    id: '5',
+    subject: 've',
+    object: 'ver',
+    possessiveDet: 'vis',
+    possessivePro: 'vis',
+    reflexive: 'verself',
+    isCustom: false,
+    isMastered: false,
+    reviewCount: 0,
+    notes: 'Created by writer Hulda Regehr Clark in 1970. Used as a simple gender-neutral singular pronoun set.'
+  },
+  {
+    id: '6',
+    subject: 'ne',
+    object: 'nem',
+    possessiveDet: 'nir',
+    possessivePro: 'nirs',
+    reflexive: 'nemself',
+    isCustom: false,
+    isMastered: false,
+    reviewCount: 0,
+    notes: 'Popularized by science fiction novels and online gender-neutral databases as a modern pronoun choice.'
+  },
+  {
+    id: '7',
+    subject: 'per',
+    object: 'per',
+    possessiveDet: 'per',
+    possessivePro: 'pers',
+    reflexive: 'perself',
+    isCustom: false,
+    isMastered: false,
+    reviewCount: 0,
+    notes: 'Short for person. Created by feminist author Marge Piercy in her 1976 utopian novel \'Woman on the Edge of Time\'.'
+  },
+  {
+    id: '8',
+    subject: 'sie',
+    object: 'hir',
+    possessiveDet: 'hir',
+    possessivePro: 'hirs',
+    reflexive: 'hirself',
+    isCustom: false,
+    isMastered: false,
+    reviewCount: 0,
+    notes: 'A classic gender-neutral set, blending English with German-influenced spellings. Pronounced see and here.'
+  },
+  {
+    id: '9',
+    subject: 'ae',
+    object: 'aer',
+    possessiveDet: 'aer',
+    possessivePro: 'aers',
+    reflexive: 'aerself',
+    isCustom: false,
+    isMastered: false,
+    reviewCount: 0,
+    notes: 'A futuristic aesthetic pronoun set common in speculative fiction, sci-fi writing, and neurodivergent communities.'
+  },
+  {
+    id: '10',
+    subject: 'thon',
+    object: 'thon',
+    possessiveDet: 'thons',
+    possessivePro: 'thons',
+    reflexive: 'thonself',
+    isCustom: false,
+    isMastered: false,
+    reviewCount: 0,
+    notes: 'One of the oldest documented English neopronouns, coined in 1884 by Charles Crozat Converse as a contraction of \'that one\'.'
+  }
+];
+
+// Sample practice sentence templates for each category
+const SENTENCE_TEMPLATES: PracticeSentence[] = [
+  { template: "___ is going to the local library today.", type: 'subject' },
+  { template: "___ loves coding offline-first applications.", type: 'subject' },
+  { template: "The teacher asked ___ to answer the question.", type: 'object' },
+  { template: "I want to invite ___ to join our practice session.", type: 'object' },
+  { template: "This is ___ newly designed notebook.", type: 'possessiveDet' },
+  { template: "We admire ___ commitment to normalizing inclusive language.", type: 'possessiveDet' },
+  { template: "The creative choice was entirely ___.", type: 'possessivePro' },
+  { template: "I bought this book thinking it was ___.", type: 'possessivePro' },
+  { template: "Ze learned how to play the piano ___.", type: 'reflexive' },
+  { template: "Fae cooked a wonderful vegan meal for ___.", type: 'reflexive' }
+];
+
+export default function App() {
+  // State variables mimicking Room Database sync
+  const [pronounSets, setPronounSets] = useState<PronounSet[]>(() => {
+    const saved = localStorage.getItem('pronoun_pocket_sets');
+    let loaded: PronounSet[] = [];
+    if (saved) {
+      try {
+        loaded = JSON.parse(saved);
+        // Automatically merge any missing default pronouns (e.g. from newer app updates)
+        const loadedSubjects = new Set(loaded.map(s => s.subject.toLowerCase()));
+        DEFAULT_PRONOUNS.forEach(defaultSet => {
+          if (!loadedSubjects.has(defaultSet.subject.toLowerCase())) {
+            loaded.push(defaultSet);
+          }
+        });
+      } catch (e) {
+        loaded = [...DEFAULT_PRONOUNS];
+      }
+    } else {
+      loaded = [...DEFAULT_PRONOUNS];
+    }
+    return loaded.map(set => {
+      const defaultAttempts = set.isMastered ? REQUIRED_CORRECT_ATTEMPTS : 0;
+      return {
+        ...set,
+        isEnabled: set.isEnabled === undefined ? true : set.isEnabled,
+        associatedNames: set.associatedNames || undefined,
+        correctAttempts: set.correctAttempts || {
+          subject: defaultAttempts,
+          object: defaultAttempts,
+          possessiveDet: defaultAttempts,
+          possessivePro: defaultAttempts,
+          reflexive: defaultAttempts
+        }
+      };
+    });
+  });
+
+  // Navigation tab states
+  const [activeTab, setActiveTab] = useState<'study' | 'learn' | 'library' | 'android-specs'>('study');
+  
+  // Developer Console active tab states
+  const [consoleTab, setConsoleTab] = useState<'sqlite-inspector' | 'room-query-logs' | 'kotlin-sources' | 'device-workshop'>('sqlite-inspector');
+  
+  // Kotlin sub-files tab
+  const [selectedCodeFile, setSelectedCodeFile] = useState<'gradle' | 'theme' | 'room' | 'viewmodel' | 'ui'>('room');
+
+  // Physical ticking clock for status bar
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // DB Logs representing simulated SQLite queries
+  const [dbLogs, setDbLogs] = useState<{ id: string; timestamp: string; query: string; type: 'select' | 'insert' | 'update' | 'delete' | 'success' | 'system' }[]>([]);
+
+  // Clock sync
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Helper to log SQL statement queries
+  const logQuery = (query: string, type: 'select' | 'insert' | 'update' | 'delete' | 'success' | 'system') => {
+    setDbLogs(prev => [
+      {
+        id: Date.now() + '-' + Math.random(),
+        timestamp: new Date().toLocaleTimeString(),
+        query,
+        type
+      },
+      ...prev
+    ].slice(0, 100));
+  };
+
+  // Toggle active state for pronoun sets
+  const handleToggleEnable = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    let nextEnabled = true;
+    const updated = pronounSets.map(set => {
+      if (set.id === id) {
+        nextEnabled = set.isEnabled === false ? true : false;
+        logQuery(`sqlite> UPDATE pronoun_set SET is_enabled = ${nextEnabled ? 1 : 0} WHERE id = '${id}';`, 'update');
+        logQuery(`RoomDB [SUCCESS]: Pronoun set '${set.subject}/${set.object}' ${nextEnabled ? 'ENABLED' : 'DISABLED'} for practice.`, 'success');
+        return {
+          ...set,
+          isEnabled: nextEnabled
+        };
+      }
+      return set;
+    });
+    setPronounSets(updated);
+
+    // If we just disabled it, filter out cards of this set from sessionDeck
+    if (!nextEnabled) {
+      const filteredDeck = sessionDeck.filter(card => card.set.id !== id);
+      setSessionDeck(filteredDeck);
+      setCurrentCardIndex(0);
+      setIsFlipped(false);
+    } else {
+      // Re-trigger/rebuild session deck to incorporate newly enabled set immediately
+      const activeSets = updated.filter(set => set.isEnabled !== false);
+      const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
+      activeSets.forEach(set => {
+        const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
+        shuffledTemplates.slice(0, 3).forEach(sentence => {
+          deck.push({ set, sentence });
+        });
+      });
+      setSessionDeck(deck.sort(() => 0.5 - Math.random()));
+      setCurrentCardIndex(0);
+      setIsFlipped(false);
+    }
+  };
+
+  // Toggle active state for ALL pronoun sets
+  const handleToggleAll = (enabled: boolean) => {
+    const updated = pronounSets.map(set => ({
+      ...set,
+      isEnabled: enabled
+    }));
+    setPronounSets(updated);
+    logQuery(`sqlite> UPDATE pronoun_set SET is_enabled = ${enabled ? 1 : 0};`, 'update');
+    logQuery(`RoomDB [SUCCESS]: All pronoun sets ${enabled ? 'ENABLED' : 'DISABLED'} for practice.`, 'update');
+
+    if (!enabled) {
+      setSessionDeck([]);
+      setCurrentCardIndex(0);
+      setIsFlipped(false);
+    } else {
+      // Rebuild the deck with all sets
+      const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
+      updated.forEach(set => {
+        const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
+        shuffledTemplates.slice(0, 3).forEach(sentence => {
+          deck.push({ set, sentence });
+        });
+      });
+      setSessionDeck(deck.sort(() => 0.5 - Math.random()));
+      setCurrentCardIndex(0);
+      setIsFlipped(false);
+    }
+  };
+
+  // Log initial database connection
+  useEffect(() => {
+    logQuery(`sqlite> SELECT * FROM pronoun_set ORDER BY isCustom DESC, id ASC;`, 'select');
+    logQuery(`RoomDB [SUCCESS]: Opened SQLite Connection 'sqlite_local.db' & retrieved ${pronounSets.length} rows successfully.`, 'success');
+  }, []);
+
+  // Study session states
+  const [sessionDeck, setSessionDeck] = useState<{set: PronounSet; sentence: PracticeSentence}[]>([]);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [streak, setStreak] = useState(0);
+
+  // Modal / Form States for CRUD
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingSet, setEditingSet] = useState<PronounSet | null>(null);
+  
+  // New Set Form State
+  const [newSubject, setNewSubject] = useState('');
+  const [newObject, setNewObject] = useState('');
+  const [newPossessiveDet, setNewPossessiveDet] = useState('');
+  const [newPossessivePro, setNewPossessivePro] = useState('');
+  const [newReflexive, setNewReflexive] = useState('');
+  const [newNotes, setNewNotes] = useState('');
+  const [newAssociatedNames, setNewAssociatedNames] = useState('');
+
+  // Selected pronoun for detailed card viewing
+  const [selectedDetailsSet, setSelectedDetailsSet] = useState<PronounSet | null>(DEFAULT_PRONOUNS[0]);
+
+  // Code Copy feedback state
+  const [copiedCodeKey, setCopiedCodeKey] = useState<string | null>(null);
+
+  // Sync to local storage
+  useEffect(() => {
+    localStorage.setItem('pronoun_pocket_sets', JSON.stringify(pronounSets));
+  }, [pronounSets]);
+
+  // Generate / shuffle a learning session deck
+  const generateSessionDeck = () => {
+    const activeSets = pronounSets.filter(set => set.isEnabled !== false);
+    if (activeSets.length === 0) {
+      setSessionDeck([]);
+      return;
+    }
+    
+    const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
+    
+    // For each active pronoun set, pair it with relevant templates
+    activeSets.forEach(set => {
+      const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
+      shuffledTemplates.slice(0, 3).forEach(sentence => {
+        deck.push({ set, sentence });
+      });
+    });
+
+    // Shuffle final deck
+    const shuffledDeck = deck.sort(() => 0.5 - Math.random());
+    setSessionDeck(shuffledDeck);
+    setCurrentCardIndex(0);
+    setIsFlipped(false);
+
+    logQuery(`sqlite> SELECT * FROM sentence_template JOIN pronoun_set ON sentence_template.type = pronoun_set.target_form WHERE is_enabled = 1 ORDER BY RANDOM();`, 'select');
+    logQuery(`RoomDB [SUCCESS]: Generated new practice deck session containing ${shuffledDeck.length} flashcards in memory.`, 'success');
+  };
+
+  // Start initial deck when pronounSets change or component mounts
+  useEffect(() => {
+    if (sessionDeck.length === 0 && pronounSets.length > 0) {
+      generateSessionDeck();
+    }
+  }, [pronounSets]);
+
+  // Debug & Development helpers
+  const handleDebugResetProgress = () => {
+    const resetSets = pronounSets.map(set => ({
+      ...set,
+      isMastered: false,
+      reviewCount: 0,
+      correctAttempts: {
+        subject: 0,
+        object: 0,
+        possessiveDet: 0,
+        possessivePro: 0,
+        reflexive: 0
+      }
+    }));
+    setPronounSets(resetSets);
+    setStreak(0);
+    if (selectedDetailsSet) {
+      const updated = resetSets.find(s => s.id === selectedDetailsSet.id);
+      setSelectedDetailsSet(updated || null);
+    }
+    // Force recreate deck
+    const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
+    const activeSets = resetSets.filter(set => set.isEnabled !== false);
+    activeSets.forEach(set => {
+      const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
+      shuffledTemplates.slice(0, 3).forEach(sentence => {
+        deck.push({ set, sentence });
+      });
+    });
+    setSessionDeck(deck.sort(() => 0.5 - Math.random()));
+    setCurrentCardIndex(0);
+    setIsFlipped(false);
+
+    logQuery(`sqlite> UPDATE pronoun_set SET isMastered = 0, reviewCount = 0, correctAttemptsSubject = 0, correctAttemptsObject = 0, correctAttemptsPossessiveDet = 0, correctAttemptsPossessivePro = 0, correctAttemptsReflexive = 0;`, 'update');
+    logQuery(`RoomDB [SUCCESS]: RESET database transaction executed successfully. Stats cleared.`, 'success');
+  };
+
+  const handleDebugFactoryReset = () => {
+    localStorage.removeItem('pronoun_pocket_sets');
+    const freshSets = DEFAULT_PRONOUNS.map(set => ({
+      ...set,
+      isEnabled: true,
+      correctAttempts: {
+        subject: 0,
+        object: 0,
+        possessiveDet: 0,
+        possessivePro: 0,
+        reflexive: 0
+      }
+    }));
+    setPronounSets(freshSets);
+    setStreak(0);
+    setSelectedDetailsSet(freshSets[0]);
+    // Force recreate deck
+    const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
+    const activeSets = freshSets.filter(set => set.isEnabled !== false);
+    activeSets.forEach(set => {
+      const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
+      shuffledTemplates.slice(0, 3).forEach(sentence => {
+        deck.push({ set, sentence });
+      });
+    });
+    setSessionDeck(deck.sort(() => 0.5 - Math.random()));
+    setCurrentCardIndex(0);
+    setIsFlipped(false);
+
+    logQuery(`sqlite> DROP TABLE IF EXISTS pronoun_set;`, 'system');
+    logQuery(`sqlite> CREATE TABLE pronoun_set (id TEXT PRIMARY KEY, subject TEXT, object TEXT, possessiveDet TEXT, possessivePro TEXT, reflexive TEXT, isCustom INTEGER, isMastered INTEGER, reviewCount INTEGER, notes TEXT, is_enabled INTEGER, associated_names TEXT);`, 'system');
+    logQuery(`sqlite> INSERT INTO pronoun_set SELECT * FROM static_seeded_pronouns;`, 'insert');
+    logQuery(`RoomDB [SUCCESS]: Factory reset complete. Local database files re-created and re-seeded.`, 'success');
+  };
+
+  const handleDebugMasterAll = () => {
+    const masteredSets = pronounSets.map(set => ({
+      ...set,
+      isMastered: true,
+      correctAttempts: {
+        subject: REQUIRED_CORRECT_ATTEMPTS,
+        object: REQUIRED_CORRECT_ATTEMPTS,
+        possessiveDet: REQUIRED_CORRECT_ATTEMPTS,
+        possessivePro: REQUIRED_CORRECT_ATTEMPTS,
+        reflexive: REQUIRED_CORRECT_ATTEMPTS
+      }
+    }));
+    setPronounSets(masteredSets);
+    if (selectedDetailsSet) {
+      const updated = masteredSets.find(s => s.id === selectedDetailsSet.id);
+      setSelectedDetailsSet(updated || null);
+    }
+    // Force recreate deck
+    const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
+    const activeSets = masteredSets.filter(set => set.isEnabled !== false);
+    activeSets.forEach(set => {
+      const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
+      shuffledTemplates.slice(0, 3).forEach(sentence => {
+        deck.push({ set, sentence });
+      });
+    });
+    setSessionDeck(deck.sort(() => 0.5 - Math.random()));
+    setCurrentCardIndex(0);
+    setIsFlipped(false);
+
+    logQuery(`sqlite> UPDATE pronoun_set SET isMastered = 1, correctAttemptsSubject = 3, correctAttemptsObject = 3, correctAttemptsPossessiveDet = 3, correctAttemptsPossessivePro = 3, correctAttemptsReflexive = 3;`, 'update');
+    logQuery(`RoomDB [SUCCESS]: UPDATE database transaction executed. All records fully mastered in SQLite.`, 'success');
+  };
+
+  const handleDebugAddFaeSet = () => {
+    if (pronounSets.some(s => s.subject === 'fae')) {
+      alert('"fae" set already exists!');
+      return;
+    }
+    const faeSet: PronounSet = {
+      id: 'fae-' + Date.now(),
+      subject: 'fae',
+      object: 'faer',
+      possessiveDet: 'faer',
+      possessivePro: 'faers',
+      reflexive: 'faerself',
+      isCustom: true,
+      isMastered: false,
+      reviewCount: 0,
+      isEnabled: true,
+      notes: 'A popular neopronoun set inspired by fairies and nature folklore. Usually conjugated like singular "they" or "she".',
+      correctAttempts: {
+        subject: 0,
+        object: 0,
+        possessiveDet: 0,
+        possessivePro: 0,
+        reflexive: 0
+      }
+    };
+    const updated = [...pronounSets, faeSet];
+    setPronounSets(updated);
+    setSelectedDetailsSet(faeSet);
+    
+    const deck: {set: PronounSet; sentence: PracticeSentence}[] = [];
+    const activeSets = updated.filter(set => set.isEnabled !== false);
+    activeSets.forEach(set => {
+      const shuffledTemplates = [...SENTENCE_TEMPLATES].sort(() => 0.5 - Math.random());
+      shuffledTemplates.slice(0, 3).forEach(sentence => {
+        deck.push({ set, sentence });
+      });
+    });
+    setSessionDeck(deck.sort(() => 0.5 - Math.random()));
+    setCurrentCardIndex(0);
+    setIsFlipped(false);
+
+    logQuery(`sqlite> INSERT INTO pronoun_set (id, subject, object, possessiveDet, possessivePro, reflexive, isCustom, isMastered, reviewCount, notes, is_enabled) VALUES ('${faeSet.id}', 'fae', 'faer', 'faer', 'faers', 'faeself', 1, 0, 0, '${faeSet.notes}', 1);`, 'insert');
+    logQuery(`RoomDB [SUCCESS]: Row created successfully. Row ID: '${faeSet.id}' committed.`, 'success');
+  };
+
+  // CRUD handlers
+  const handleCreateOrUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubject || !newObject || !newPossessiveDet || !newPossessivePro || !newReflexive) {
+      alert("Please fill in all 5 pronoun forms.");
+      return;
+    }
+
+    if (editingSet) {
+      // Update
+      const updated = pronounSets.map(set => {
+        if (set.id === editingSet.id) {
+          const updatedSet = {
+            ...set,
+            subject: newSubject.toLowerCase().trim(),
+            object: newObject.toLowerCase().trim(),
+            possessiveDet: newPossessiveDet.toLowerCase().trim(),
+            possessivePro: newPossessivePro.toLowerCase().trim(),
+            reflexive: newReflexive.toLowerCase().trim(),
+            notes: newNotes.trim(),
+            associatedNames: newAssociatedNames.trim() || undefined
+          };
+          
+          logQuery(`sqlite> UPDATE pronoun_set SET subject = '${updatedSet.subject}', object = '${updatedSet.object}', possessiveDet = '${updatedSet.possessiveDet}', possessivePro = '${updatedSet.possessivePro}', reflexive = '${updatedSet.reflexive}', notes = '${updatedSet.notes}', associated_names = '${updatedSet.associatedNames || ''}' WHERE id = '${set.id}';`, 'update');
+          logQuery(`RoomDB [SUCCESS]: SQLite write success. Row ID: '${set.id}' updated.`, 'update');
+          
+          return updatedSet;
+        }
+        return set;
+      });
+      setPronounSets(updated);
+    } else {
+      // Create
+      const newSet: PronounSet = {
+        id: Date.now().toString(),
+        subject: newSubject.toLowerCase().trim(),
+        object: newObject.toLowerCase().trim(),
+        possessiveDet: newPossessiveDet.toLowerCase().trim(),
+        possessivePro: newPossessivePro.toLowerCase().trim(),
+        reflexive: newReflexive.toLowerCase().trim(),
+        isCustom: true,
+        isMastered: false,
+        reviewCount: 0,
+        isEnabled: true,
+        notes: newNotes.trim(),
+        associatedNames: newAssociatedNames.trim() || undefined,
+        correctAttempts: {
+          subject: 0,
+          object: 0,
+          possessiveDet: 0,
+          possessivePro: 0,
+          reflexive: 0
+        }
+      };
+      
+      logQuery(`sqlite> INSERT INTO pronoun_set (id, subject, object, possessiveDet, possessivePro, reflexive, isCustom, isMastered, reviewCount, notes, is_enabled, associated_names) VALUES ('${newSet.id}', '${newSet.subject}', '${newSet.object}', '${newSet.possessiveDet}', '${newSet.possessivePro}', '${newSet.reflexive}', 1, 0, 0, '${newSet.notes}', 1, '${newSet.associatedNames || ''}');`, 'insert');
+      logQuery(`RoomDB [SUCCESS]: SQLite row committed. ID: '${newSet.id}' inserted into database.`, 'success');
+      
+      setPronounSets([...pronounSets, newSet]);
+    }
+
+    // Reset Form
+    resetForm();
+    setIsAddModalOpen(false);
+  };
+
+  const resetForm = () => {
+    setNewSubject('');
+    setNewObject('');
+    setNewPossessiveDet('');
+    setNewPossessivePro('');
+    setNewReflexive('');
+    setNewNotes('');
+    setNewAssociatedNames('');
+    setEditingSet(null);
+  };
+
+  const handleEditClick = (set: PronounSet) => {
+    setEditingSet(set);
+    setNewSubject(set.subject);
+    setNewObject(set.object);
+    setNewPossessiveDet(set.possessiveDet);
+    setNewPossessivePro(set.possessivePro);
+    setNewReflexive(set.reflexive);
+    setNewNotes(set.notes || '');
+    setNewAssociatedNames(set.associatedNames || '');
+    setIsAddModalOpen(true);
+  };
+
+  const handleDeleteSet = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this pronoun set? This will clear all learning statistics for it.")) {
+      const filtered = pronounSets.filter(set => set.id !== id);
+      setPronounSets(filtered);
+      
+      logQuery(`sqlite> DELETE FROM pronoun_set WHERE id = '${id}';`, 'delete');
+      logQuery(`RoomDB [SUCCESS]: Row ID: '${id}' deleted from database successfully.`, 'success');
+
+      if (selectedDetailsSet?.id === id) {
+        setSelectedDetailsSet(filtered[0] || null);
+      }
+      // Re-trigger session generation
+      setSessionDeck([]);
+    }
+  };
+
+  // Flashcard Actions
+  const handleCardRating = (correct: boolean) => {
+    if (sessionDeck.length === 0) return;
+    
+    const activeCard = sessionDeck[currentCardIndex];
+    const formType = activeCard.sentence.type;
+    
+    // Update neopronoun state
+    const updatedSets = pronounSets.map(set => {
+      if (set.id === activeCard.set.id) {
+        const currentAttempts = set.correctAttempts || {
+          subject: 0,
+          object: 0,
+          possessiveDet: 0,
+          possessivePro: 0,
+          reflexive: 0
+        };
+        
+        let newAttempts = { ...currentAttempts };
+        if (correct) {
+          newAttempts[formType] = Math.min(REQUIRED_CORRECT_ATTEMPTS, (currentAttempts[formType] || 0) + 1);
+        }
+        
+        // A set is mastered only if ALL 5 forms have reached REQUIRED_CORRECT_ATTEMPTS
+        const allMastered = 
+          newAttempts.subject >= REQUIRED_CORRECT_ATTEMPTS &&
+          newAttempts.object >= REQUIRED_CORRECT_ATTEMPTS &&
+          newAttempts.possessiveDet >= REQUIRED_CORRECT_ATTEMPTS &&
+          newAttempts.possessivePro >= REQUIRED_CORRECT_ATTEMPTS &&
+          newAttempts.reflexive >= REQUIRED_CORRECT_ATTEMPTS;
+
+        const updatedSet = {
+          ...set,
+          reviewCount: set.reviewCount + 1,
+          correctAttempts: newAttempts,
+          isMastered: allMastered
+        };
+
+        const colName = formType === 'subject' ? 'subject_correct'
+                      : formType === 'object' ? 'object_correct'
+                      : formType === 'possessiveDet' ? 'poss_det_correct'
+                      : formType === 'possessivePro' ? 'poss_pro_correct'
+                      : 'reflexive_correct';
+
+        logQuery(`sqlite> UPDATE pronoun_set SET reviewCount = ${updatedSet.reviewCount}, ${colName} = ${newAttempts[formType]}, isMastered = ${allMastered ? 1 : 0} WHERE id = '${set.id}';`, 'update');
+        logQuery(`RoomDB [SUCCESS]: Stats saved for '${set.subject}/${set.object}'. ${formType.toUpperCase()}: ${newAttempts[formType]}/${REQUIRED_CORRECT_ATTEMPTS}.`, 'success');
+
+        return updatedSet;
+      }
+      return set;
+    });
+
+    setPronounSets(updatedSets);
+
+    // Keep selected details set synced
+    if (selectedDetailsSet) {
+      const updatedDetails = updatedSets.find(s => s.id === selectedDetailsSet.id);
+      if (updatedDetails) {
+        setSelectedDetailsSet(updatedDetails);
+      }
+    }
+
+    if (correct) {
+      setStreak(prev => prev + 1);
+    } else {
+      setStreak(0);
+    }
+
+    // Navigate to next card
+    if (currentCardIndex < sessionDeck.length - 1) {
+      setIsFlipped(false);
+      setTimeout(() => {
+        setCurrentCardIndex(prev => prev + 1);
+      }, 200);
+    } else {
+      // Finished deck! Re-generate
+      alert("Congratulations! You have completed this practice deck. Let's load a fresh batch!");
+      generateSessionDeck();
+    }
+  };
+
+  // Helper to replace placeholder with appropriate form
+  const getCorrectPronounValue = (set: PronounSet, type: string) => {
+    switch (type) {
+      case 'subject': return set.subject;
+      case 'object': return set.object;
+      case 'possessiveDet': return set.possessiveDet;
+      case 'possessivePro': return set.possessivePro;
+      case 'reflexive': return set.reflexive;
+      default: return set.subject;
+    }
+  };
+
+  const formatSentence = (sentence: PracticeSentence, set: PronounSet, reveal: boolean) => {
+    const pronounValue = getCorrectPronounValue(set, sentence.type);
+    const capitalizedPronoun = pronounValue.charAt(0).toUpperCase() + pronounValue.slice(1);
+    
+    // Handle beginning of sentence capitalization
+    const isBeginning = sentence.template.startsWith("___");
+    const displayPronoun = isBeginning ? capitalizedPronoun : pronounValue;
+
+    let templateString = sentence.template;
+
+    // Replace hardcoded "Ze" / "Fae" inside reflexive templates with subject pronoun or name
+    if (sentence.type === 'reflexive') {
+      const subjectCapitalized = set.subject.charAt(0).toUpperCase() + set.subject.slice(1);
+      const replacementSubject = set.associatedNames ? set.associatedNames : subjectCapitalized;
+      templateString = templateString
+        .replace(/^Ze\b/, replacementSubject)
+        .replace(/^Fae\b/, replacementSubject);
+    } else if (set.associatedNames) {
+      // Prepend context sentence with the associated name to customize practice context
+      const name = set.associatedNames;
+      if (sentence.type === 'subject') {
+        templateString = `${name} is busy. ${templateString}`;
+      } else if (sentence.type === 'object') {
+        templateString = `${name} is in class. ${templateString}`;
+      } else if (sentence.type === 'possessiveDet') {
+        templateString = `${name} is creative. ${templateString}`;
+      } else if (sentence.type === 'possessivePro') {
+        templateString = `${name} made this. ${templateString}`;
+      }
+    }
+
+    if (!reveal) {
+      return templateString.replace("___", "_______");
+    }
+    
+    // Reveal pronoun styled with soft editorial highlight
+    const parts = templateString.split("___");
+    return (
+      <span className="font-serif italic font-normal text-[#0F172A]">
+        {parts[0]}
+        <strong className="px-2.5 py-1 mx-1.5 rounded-[4px] bg-[#EEF2FF] text-[#4338CA] font-bold border-b-2 border-[#4338CA] inline-block not-italic text-xs">
+          {displayPronoun}
+        </strong>
+        {parts[1]}
+      </span>
+    );
+  };
+
+  const handleCopyCode = (code: string, key: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCodeKey(key);
+    setTimeout(() => setCopiedCodeKey(null), 2500);
+  };
+
+  // Mastered pronouns count
+  const masteredCount = pronounSets.filter(s => s.isMastered).length;
+
+  // Format digital time for simulator status bar
+  const timeString = currentTime.toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }).replace(/\s?[A-Za-z]+$/, '');
+
+  return (
+    <div className="min-h-screen bg-[#FDFBF7] text-[#0F172A] flex flex-col font-sans selection:bg-indigo-100/80">
+      
+      {/* Top Welcome Header - Unifying web & mobile */}
+      <header className="border-b border-neutral-200 bg-[#FDFBF7]/90 backdrop-blur-xs sticky top-0 z-30 px-6 py-4 select-none">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-[4px] bg-[#0F172A] flex items-center justify-center text-white shadow-sm shrink-0">
+              <Sparkles className="w-5 h-5 text-indigo-200" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-light tracking-tight text-[#0F172A]">
+                  Pronoun<span className="font-serif italic font-semibold text-[#0F172A]">Pocket</span>
+                </h1>
+                <span className="text-[9px] uppercase tracking-widest font-bold border border-[#0F172A] text-[#0F172A] px-2 py-0.5 rounded-[4px] bg-white">
+                  Android Live Spec Simulator
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500 flex items-center gap-1 mt-0.5 font-light">
+                <Shield className="w-3.5 h-3.5 text-[#0F172A] shrink-0" />
+                Offline-First Jetpack Compose & SQLite/Room DB Engine Emulator
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Quick stats summarizing phone state */}
+            <div className="hidden md:flex items-center gap-4 bg-white/70 px-4 py-2 rounded-[4px] border border-neutral-200 text-xs font-medium">
+              <div className="flex items-center gap-1.5 text-neutral-500">
+                <Layers className="w-4 h-4 text-[#0F172A]" />
+                <span>DB Rows: <strong>{pronounSets.length}</strong></span>
+              </div>
+              <div className="w-px h-4 bg-neutral-200"></div>
+              <div className="flex items-center gap-1.5 text-neutral-500">
+                <CheckCircle2 className="w-4 h-4 text-[#0F172A]" />
+                <span>Mastered: <strong>{masteredCount}</strong></span>
+              </div>
+              <div className="w-px h-4 bg-neutral-200"></div>
+              <div className="flex items-center gap-1.5 text-neutral-500">
+                <Award className="w-4 h-4 text-[#0F172A]" />
+                <span>Streak: <strong>{streak}</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* Left Side (5 cols): The Smartphone Simulator */}
+        <div className="lg:col-span-5 flex flex-col items-center gap-4 w-full">
+          <div className="text-center">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-1 flex items-center justify-center gap-1.5">
+              <Smartphone className="w-3.5 h-3.5 text-[#0F172A]" /> Simulated Android Device (Pixel 8)
+            </h2>
+            <p className="text-[11px] text-neutral-400 font-light">Interact with the touch-screen exactly as on a mobile device.</p>
+          </div>
+
+          <PhoneSimulator
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            streak={streak}
+            masteredCount={masteredCount}
+            pronounSets={pronounSets}
+            sessionDeck={sessionDeck}
+            currentCardIndex={currentCardIndex}
+            isFlipped={isFlipped}
+            setIsFlipped={setIsFlipped}
+            handleCardRating={handleCardRating}
+            isAddModalOpen={isAddModalOpen}
+            setIsAddModalOpen={setIsAddModalOpen}
+            editingSet={editingSet}
+            newSubject={newSubject}
+            setNewSubject={setNewSubject}
+            newObject={newObject}
+            setNewObject={setNewObject}
+            newPossessiveDet={newPossessiveDet}
+            setNewPossessiveDet={setNewPossessiveDet}
+            newPossessivePro={newPossessivePro}
+            setNewPossessivePro={setNewPossessivePro}
+            newReflexive={newReflexive}
+            setNewReflexive={setNewReflexive}
+            newNotes={newNotes}
+            setNewNotes={setNewNotes}
+            newAssociatedNames={newAssociatedNames}
+            setNewAssociatedNames={setNewAssociatedNames}
+            handleToggleEnable={handleToggleEnable}
+            handleToggleAll={handleToggleAll}
+            handleCreateOrUpdate={handleCreateOrUpdate}
+            handleDeleteSet={handleDeleteSet}
+            handleEditClick={handleEditClick}
+            setSelectedDetailsSet={setSelectedDetailsSet}
+            selectedDetailsSet={selectedDetailsSet}
+            formatSentence={formatSentence}
+            timeString={timeString}
+          />
+        </div>
+
+        {/* Right Side (7 cols): The Android Developer Workbench & Specs */}
+        <div className="lg:col-span-7 flex flex-col gap-6 w-full">
+          <DevWorkbench
+            consoleTab={consoleTab}
+            setConsoleTab={setConsoleTab}
+            pronounSets={pronounSets}
+            dbLogs={dbLogs}
+            setDbLogs={setDbLogs}
+            selectedCodeFile={selectedCodeFile}
+            setSelectedCodeFile={setSelectedCodeFile}
+            copiedCodeKey={copiedCodeKey}
+            handleCopyCode={handleCopyCode}
+            handleDebugResetProgress={handleDebugResetProgress}
+            handleDebugMasterAll={handleDebugMasterAll}
+            handleDebugAddFaeSet={handleDebugAddFaeSet}
+            handleDebugFactoryReset={handleDebugFactoryReset}
+            selectedDetailsSet={selectedDetailsSet}
+            formatSentence={formatSentence}
+          />
+        </div>
+
+      </main>
+
+      {/* Footer */}
+      <footer className="mt-auto border-t border-neutral-200 bg-white py-6 px-8 text-xs text-neutral-500 text-center select-none">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+          <p className="flex items-center gap-1.5 font-light">
+            Made with <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> to foster inclusion, normalize pronouns, and accelerate learning.
+          </p>
+          <div className="flex gap-4">
+            <span className="text-[#0F172A] font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 pb-0.5">Offline SQLite/Room Simulator</span>
+            <span className="text-[#0F172A] font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 pb-0.5">Jetpack Compose Layouts</span>
+            <span className="text-[#0F172A] font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 pb-0.5">MVVM StateFlow Architecture</span>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  );
+}

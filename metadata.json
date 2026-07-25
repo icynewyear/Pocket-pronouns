@@ -1,0 +1,6 @@
+{
+  "name": "PronounPocket",
+  "description": "A local-first, privacy-focused flashcard tool to learn, practice, and normalize neopronouns.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
