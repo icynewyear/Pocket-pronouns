@@ -7,7 +7,13 @@ import {
   Award, 
   Heart,
   Sun,
-  Moon
+  Moon,
+  Share2,
+  Link2,
+  Check,
+  Twitter,
+  Linkedin,
+  Mail
 } from 'lucide-react';
 import { PronounSet, PracticeSentence, REQUIRED_CORRECT_ATTEMPTS } from './types';
 import PhoneSimulator from './components/PhoneSimulator';
@@ -232,6 +238,22 @@ export default function App() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Share & copy states
+  const [copied, setCopied] = useState(false);
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : 'https://pronounpocket.app';
+  const shareText = "I'm practicing and learning neopronouns with PronounPocket! Normalizing inclusive language has never been easier. Check it out:";
+  
+  const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+  const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+  const emailShareUrl = `mailto:?subject=${encodeURIComponent("Practice Neopronouns with PronounPocket")}&body=${encodeURIComponent(`${shareText}\n\n${shareUrl}`)}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  };
 
   // Helper to log SQL statement queries
   const logQuery = (query: string, type: 'select' | 'insert' | 'update' | 'delete' | 'success' | 'system') => {
@@ -899,6 +921,74 @@ export default function App() {
           formatSentence={formatSentence}
           timeString={timeString}
         />
+
+        {/* Share Section */}
+        <div className="bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 rounded-[16px] p-6 shadow-xs flex flex-col md:flex-row justify-between items-center gap-6 mt-4 select-none transition-all">
+          <div className="flex flex-col gap-1 text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start gap-2">
+              <Share2 className="w-4.5 h-4.5 text-indigo-500" />
+              <h4 className="font-serif italic font-bold text-base text-[#0F172A] dark:text-slate-100">Share PronounPocket</h4>
+            </div>
+            <p className="text-xs text-neutral-500 dark:text-slate-400 font-light max-w-xl leading-relaxed">
+              Help foster inclusion and normalize pronouns by sharing this interactive learning practice tool with your friends, colleagues, or community!
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 w-full md:w-auto">
+            {/* Copy Link button */}
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-[12px] border text-xs font-semibold cursor-pointer transition-all duration-200 active:scale-95 ${
+                copied
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-400'
+                  : 'bg-white dark:bg-slate-950 hover:bg-neutral-50 dark:hover:bg-slate-900 border-neutral-200 dark:border-slate-800 text-neutral-700 dark:text-slate-300'
+              }`}
+            >
+              {copied ? (
+                <>
+                  <Check className="w-4 h-4 text-emerald-500" />
+                  <span>Link Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Link2 className="w-4 h-4 text-neutral-500 dark:text-slate-400" />
+                  <span>Copy Link</span>
+                </>
+              )}
+            </button>
+
+            {/* Twitter / X */}
+            <a
+              href={twitterShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-[12px] border bg-white dark:bg-slate-950 hover:bg-neutral-50 dark:hover:bg-slate-900 border-neutral-200 dark:border-slate-800 text-neutral-700 dark:text-slate-300 text-xs font-semibold transition-all duration-200 active:scale-95"
+            >
+              <Twitter className="w-4 h-4 text-[#1DA1F2]" />
+              <span>Share on X</span>
+            </a>
+
+            {/* LinkedIn */}
+            <a
+              href={linkedinShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-[12px] border bg-white dark:bg-slate-950 hover:bg-neutral-50 dark:hover:bg-slate-900 border-neutral-200 dark:border-slate-800 text-neutral-700 dark:text-slate-300 text-xs font-semibold transition-all duration-200 active:scale-95"
+            >
+              <Linkedin className="w-4 h-4 text-[#0A66C2]" />
+              <span>LinkedIn</span>
+            </a>
+
+            {/* Email */}
+            <a
+              href={emailShareUrl}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-[12px] border bg-white dark:bg-slate-950 hover:bg-neutral-50 dark:hover:bg-slate-900 border-neutral-200 dark:border-slate-800 text-neutral-700 dark:text-slate-300 text-xs font-semibold transition-all duration-200 active:scale-95"
+            >
+              <Mail className="w-4 h-4 text-neutral-500 dark:text-slate-400" />
+              <span>Email</span>
+            </a>
+          </div>
+        </div>
 
       </main>
 
