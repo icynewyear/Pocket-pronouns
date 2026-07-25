@@ -63,8 +63,8 @@ interface PhoneSimulatorProps {
   timeString: string;
   handleExportSettings: () => void;
   handleImportSettings: (json: string) => boolean;
-  studyMode: 'flashcard' | 'multiple-choice' | 'contextual-mc';
-  setStudyMode: (mode: 'flashcard' | 'multiple-choice' | 'contextual-mc') => void;
+  studyMode: 'flashcard' | 'multiple-choice';
+  setStudyMode: (mode: 'flashcard' | 'multiple-choice') => void;
   selectedOption: string | null;
   isAnswerChecked: boolean;
   handleMultipleChoiceSelect: (option: string) => void;
@@ -375,7 +375,7 @@ export default function PhoneSimulator({
                 <div className="flex items-center justify-between sm:justify-start gap-4">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-500 dark:text-slate-400 pl-1.5">Learning Mode:</span>
                 </div>
-                <div className="flex gap-1 bg-white/50 dark:bg-slate-950/40 p-0.5 rounded-[8px] border border-neutral-200/20 dark:border-slate-800/20 w-full sm:w-auto flex-wrap">
+                <div className="flex gap-1 bg-white/50 dark:bg-slate-950/40 p-0.5 rounded-[8px] border border-neutral-200/20 dark:border-slate-800/20 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={() => setStudyMode('flashcard')}
@@ -389,13 +389,6 @@ export default function PhoneSimulator({
                     className={`flex-1 sm:flex-none px-2.5 py-1 rounded-[6px] text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer text-center whitespace-nowrap ${studyMode === 'multiple-choice' ? 'bg-[#0F172A] dark:bg-indigo-600 text-white shadow-2xs' : 'text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-200'}`}
                   >
                     🎯 Multiple Choice
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStudyMode('contextual-mc')}
-                    className={`flex-1 sm:flex-none px-2.5 py-1 rounded-[6px] text-[9px] font-bold uppercase tracking-wider transition-all cursor-pointer text-center whitespace-nowrap ${studyMode === 'contextual-mc' ? 'bg-[#0F172A] dark:bg-indigo-600 text-white shadow-2xs' : 'text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-200'}`}
-                  >
-                    📝 Contextual MCQ
                   </button>
                 </div>
               </div>
@@ -661,16 +654,13 @@ export default function PhoneSimulator({
                               <span className={letterBadgeClass}>
                                 {letters[idx]}
                               </span>
-                              <span className={studyMode === 'contextual-mc' ? "text-[11px] text-left leading-normal font-sans" : "capitalize font-sans text-left"}>
-                                {studyMode === 'contextual-mc'
-                                  ? getContextualMCQOptionText(
-                                      sessionDeck[currentCardIndex].sentence,
-                                      sessionDeck[currentCardIndex].set,
-                                      option,
-                                      sessionDeck[currentCardIndex].personName
-                                    )
-                                  : option
-                                }
+                              <span className="text-[11px] text-left leading-normal font-sans">
+                                {getContextualMCQOptionText(
+                                  sessionDeck[currentCardIndex].sentence,
+                                  sessionDeck[currentCardIndex].set,
+                                  option,
+                                  sessionDeck[currentCardIndex].personName
+                                )}
                               </span>
                             </div>
                             {iconToRender}

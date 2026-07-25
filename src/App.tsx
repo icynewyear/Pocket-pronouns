@@ -459,7 +459,7 @@ export default function App() {
   };
 
   // Multiple Choice Study Mode States
-  const [studyMode, setStudyMode] = useState<'flashcard' | 'multiple-choice' | 'contextual-mc'>('flashcard');
+  const [studyMode, setStudyMode] = useState<'flashcard' | 'multiple-choice'>('flashcard');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
 
