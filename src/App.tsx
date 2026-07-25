@@ -260,7 +260,7 @@ export default function App() {
 
   // PWA One-Click Install States & Event Handlers
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [showInstallBtn, setShowInstallBtn] = useState(true);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
 
   useEffect(() => {
@@ -276,13 +276,9 @@ export default function App() {
     // Check if running in standalone display mode
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
     
-    // Check if iOS
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    
     if (isStandalone) {
       setShowInstallBtn(false);
-    } else if (isIOS) {
-      // iOS doesn't support beforeinstallprompt but we want to show our beautiful instructions!
+    } else {
       setShowInstallBtn(true);
     }
 
