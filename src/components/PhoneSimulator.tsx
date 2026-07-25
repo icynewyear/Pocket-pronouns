@@ -13,7 +13,8 @@ import {
   Layers,
   Smartphone,
   Battery,
-  Wifi
+  Wifi,
+  Database
 } from 'lucide-react';
 import { PronounSet, PracticeSentence } from '../types';
 
@@ -98,60 +99,55 @@ export default function PhoneSimulator({
   const currentPhoneTab = activeTab === 'android-specs' ? 'study' : activeTab;
 
   return (
-    <div className="relative w-full max-w-[340px] h-[700px] bg-neutral-900 rounded-[44px] p-2.5 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.3)] ring-12 ring-neutral-900 flex flex-col overflow-hidden border border-neutral-700/50 select-none">
+    <div className="w-full flex flex-col bg-white dark:bg-slate-900 rounded-[16px] border border-neutral-200 dark:border-slate-800 shadow-sm overflow-hidden select-none">
       
-      {/* Speaker & Camera cutout bezel */}
-      <div className="absolute top-0 inset-x-0 h-6 bg-neutral-900 flex justify-center items-center z-50">
-        <div className="w-20 h-4.5 bg-neutral-900 rounded-b-xl flex items-center justify-center gap-1.5 pb-0.5">
-          <div className="w-2 h-2 bg-neutral-950 rounded-full border border-neutral-800/80 ring-1 ring-neutral-700/40"></div>
-          <div className="w-7 h-1 bg-neutral-800 rounded-full"></div>
+      {/* App Action Bar Header */}
+      <div className="bg-white dark:bg-slate-900 px-6 py-4 border-b border-neutral-200 dark:border-slate-850 flex flex-col md:flex-row justify-between items-center gap-4 z-30 select-none transition-colors">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-[6px] bg-[#0F172A] dark:bg-indigo-650 flex items-center justify-center text-white text-sm shadow-xs">
+            <Sparkles className="w-4 h-4 text-[#EEF2FF]" />
+          </div>
+          <span className="font-serif italic font-bold text-base tracking-tight text-[#0F172A] dark:text-slate-100">PronounPocket</span>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex items-center bg-neutral-100 dark:bg-slate-950 p-1 rounded-full gap-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('study')}
+            className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${currentPhoneTab === 'study' ? 'bg-[#0F172A] dark:bg-indigo-600 text-white shadow-xs' : 'text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-250'}`}
+          >
+            Study
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('learn')}
+            className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${currentPhoneTab === 'learn' ? 'bg-[#0F172A] dark:bg-indigo-600 text-white shadow-xs' : 'text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-250'}`}
+          >
+            Learn
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('library')}
+            className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all cursor-pointer ${currentPhoneTab === 'library' ? 'bg-[#0F172A] dark:bg-indigo-600 text-white shadow-xs' : 'text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-250'}`}
+          >
+            Library
+          </button>
+        </div>
+        
+        {/* Quick Stats */}
+        <div className="flex items-center gap-2 text-xs font-bold">
+          <span className="flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/60 text-[#4338CA] dark:text-indigo-300 px-2.5 py-1 rounded-[6px] border border-indigo-100 dark:border-indigo-900/40">
+            🔥 {streak} Streak
+          </span>
+          <span className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 px-2.5 py-1 rounded-[6px] border border-emerald-200 dark:border-emerald-900/50">
+            🏆 {masteredCount}/{pronounSets.length} Mastered
+          </span>
         </div>
       </div>
-      
-      {/* Screen Content Wrapper */}
-      <div className="relative flex-1 bg-[#FDFBF7] dark:bg-slate-950 rounded-[34px] flex flex-col overflow-hidden border border-neutral-950/10 dark:border-slate-900 transition-colors duration-150">
-        
-        {/* Phone Status Bar */}
-        <div className="h-7 pt-1 px-5 flex justify-between items-center bg-[#FDFBF7] dark:bg-slate-950 border-b border-[#EEF2FF] dark:border-slate-900 text-[10px] font-mono text-neutral-800 dark:text-slate-300 font-bold z-40 select-none transition-colors">
-          <span>{timeString}</span>
-          <div className="w-14 h-4"></div>
-          <div className="flex items-center gap-1">
-            <span className="text-[8px] font-mono font-medium uppercase tracking-wider text-neutral-500 dark:text-slate-400 mr-1">Google Fi</span>
-            <div className="flex gap-0.5 items-end h-2.5">
-              <div className="w-[2px] h-[3px] bg-neutral-800 dark:bg-slate-300 rounded-xs"></div>
-              <div className="w-[2px] h-[5px] bg-neutral-800 dark:bg-slate-300 rounded-xs"></div>
-              <div className="w-[2px] h-[7px] bg-neutral-800 dark:bg-slate-300 rounded-xs"></div>
-              <div className="w-[2px] h-[9px] bg-neutral-800 dark:bg-slate-300 rounded-xs"></div>
-            </div>
-            <Wifi className="w-3 h-3 text-neutral-800 dark:text-slate-300" />
-            <div className="flex items-center gap-0.5">
-              <Battery className="w-3.5 h-3.5 text-neutral-800 dark:text-slate-300" />
-              <span className="text-[8.5px]">98%</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Screen App Action Bar */}
-        <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs px-4 py-2.5 border-b border-neutral-200 dark:border-slate-800/80 flex justify-between items-center z-30 select-none transition-colors">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-[4px] bg-[#0F172A] dark:bg-indigo-650 flex items-center justify-center text-white text-[10px] shadow-xs">
-              <Sparkles className="w-3 h-3 text-[#EEF2FF]" />
-            </div>
-            <span className="font-serif italic font-bold text-xs tracking-tight text-[#0F172A] dark:text-slate-100">PronounPocket</span>
-          </div>
-          
-          <div className="flex items-center gap-1.5 text-[9px] font-bold text-neutral-500">
-            <span className="flex items-center gap-0.5 bg-[#EEF2FF] dark:bg-indigo-950/60 text-[#0F172A] dark:text-indigo-300 px-1.5 py-0.5 rounded-[4px] border border-[#EEF2FF]/30 dark:border-indigo-900/40">
-              🔥 {streak}
-            </span>
-            <span className="flex items-center gap-0.5 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded-[4px] border border-emerald-200 dark:border-emerald-900/50">
-              🏆 {masteredCount}/{pronounSets.length}
-            </span>
-          </div>
-        </div>
-
-        {/* Screen Main Scrollable Viewport */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-4 relative">
+      {/* Screen Main Viewport */}
+      <div className="flex-1 p-6 flex flex-col gap-6 relative bg-[#FDFBF7] dark:bg-slate-950 transition-colors duration-150">
           
           {/* Tab: STUDY inside phone */}
           {currentPhoneTab === 'study' && (
@@ -327,49 +323,51 @@ export default function PhoneSimulator({
 
           {/* Tab: LEARN inside phone */}
           {currentPhoneTab === 'learn' && (
-            <div className="flex flex-col gap-3 animate-in fade-in duration-200 text-[#0F172A] dark:text-slate-100">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-slate-400">Grammar Guide</span>
-              <p className="text-[10.5px] text-neutral-500 dark:text-slate-400 font-light leading-relaxed">
-                Neopronouns plug seamlessly into standard English verbs exactly like traditional pronouns. Here are the five forms:
-              </p>
+            <div className="flex flex-col gap-4 animate-in fade-in duration-200 text-[#0F172A] dark:text-slate-100">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 dark:text-slate-400">Grammar Guide</span>
+                <p className="text-xs text-neutral-500 dark:text-slate-400 font-light leading-relaxed mt-1">
+                  Neopronouns plug seamlessly into standard English verbs exactly like traditional pronouns. Here are the five forms:
+                </p>
+              </div>
 
-              <div className="flex flex-col gap-2.5 max-h-[460px] overflow-y-auto pr-0.5">
-                <div className="p-3 rounded-[8px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800">
-                  <span className="font-serif italic font-bold text-xs text-[#0F172A] dark:text-slate-100 block">1. Subject (Nominative)</span>
-                  <p className="text-[10px] text-neutral-400 dark:text-slate-400 mt-0.5 font-light">Used as the subject of the clause.</p>
-                  <code className="text-[10px] block mt-1.5 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2 py-1 rounded-[4px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="p-4 rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200/80 dark:border-slate-800 shadow-2xs">
+                  <span className="font-serif italic font-bold text-sm text-[#0F172A] dark:text-slate-100 block">1. Subject (Nominative)</span>
+                  <p className="text-xs text-neutral-400 dark:text-slate-400 mt-1 font-light">Used as the subject of the clause.</p>
+                  <code className="text-[11px] block mt-2 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2.5 py-1.5 rounded-[6px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
                     "<strong>Subject</strong> likes to read."
                   </code>
                 </div>
 
-                <div className="p-3 rounded-[8px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800">
-                  <span className="font-serif italic font-bold text-xs text-[#0F172A] dark:text-slate-100 block">2. Object (Accusative)</span>
-                  <p className="text-[10px] text-neutral-400 dark:text-slate-400 mt-0.5 font-light">The receiver of action in the clause.</p>
-                  <code className="text-[10px] block mt-1.5 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2 py-1 rounded-[4px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
+                <div className="p-4 rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200/80 dark:border-slate-800 shadow-2xs">
+                  <span className="font-serif italic font-bold text-sm text-[#0F172A] dark:text-slate-100 block">2. Object (Accusative)</span>
+                  <p className="text-xs text-neutral-400 dark:text-slate-400 mt-1 font-light">The receiver of action in the clause.</p>
+                  <code className="text-[11px] block mt-2 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2.5 py-1.5 rounded-[6px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
                     "I went with <strong>Object</strong>."
                   </code>
                 </div>
 
-                <div className="p-3 rounded-[8px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800">
-                  <span className="font-serif italic font-bold text-xs text-[#0F172A] dark:text-slate-100 block">3. Possessive Determiner</span>
-                  <p className="text-[10px] text-neutral-400 dark:text-slate-400 mt-0.5 font-light">Modifies noun to indicate ownership.</p>
-                  <code className="text-[10px] block mt-1.5 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2 py-1 rounded-[4px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
+                <div className="p-4 rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200/80 dark:border-slate-800 shadow-2xs">
+                  <span className="font-serif italic font-bold text-sm text-[#0F172A] dark:text-slate-100 block">3. Possessive Determiner</span>
+                  <p className="text-xs text-neutral-400 dark:text-slate-400 mt-1 font-light">Modifies noun to indicate ownership.</p>
+                  <code className="text-[11px] block mt-2 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2.5 py-1.5 rounded-[6px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
                     "This is <strong>Poss. Det.</strong> book."
                   </code>
                 </div>
 
-                <div className="p-3 rounded-[8px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800">
-                  <span className="font-serif italic font-bold text-xs text-[#0F172A] dark:text-slate-100 block">4. Possessive Pronoun</span>
-                  <p className="text-[10px] text-neutral-400 dark:text-slate-400 mt-0.5 font-light">Stands alone to show ownership.</p>
-                  <code className="text-[10px] block mt-1.5 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2 py-1 rounded-[4px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
+                <div className="p-4 rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200/80 dark:border-slate-800 shadow-2xs">
+                  <span className="font-serif italic font-bold text-sm text-[#0F172A] dark:text-slate-100 block">4. Possessive Pronoun</span>
+                  <p className="text-xs text-neutral-400 dark:text-slate-400 mt-1 font-light">Stands alone to show ownership.</p>
+                  <code className="text-[11px] block mt-2 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2.5 py-1.5 rounded-[6px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
                     "That opinion is <strong>Poss. Pro.</strong>."
                   </code>
                 </div>
 
-                <div className="p-3 rounded-[8px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800">
-                  <span className="font-serif italic font-bold text-xs text-[#0F172A] dark:text-slate-100 block">5. Reflexive Form</span>
-                  <p className="text-[10px] text-neutral-400 dark:text-slate-400 mt-0.5 font-light">Refers back to subject clause.</p>
-                  <code className="text-[10px] block mt-1.5 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2 py-1 rounded-[4px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
+                <div className="p-4 rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200/80 dark:border-slate-800 shadow-2xs col-span-1 md:col-span-2 lg:col-span-1">
+                  <span className="font-serif italic font-bold text-sm text-[#0F172A] dark:text-slate-100 block">5. Reflexive Form</span>
+                  <p className="text-xs text-neutral-400 dark:text-slate-400 mt-1 font-light">Refers back to subject clause.</p>
+                  <code className="text-[11px] block mt-2 text-[#0F172A] dark:text-indigo-300 bg-[#FDFBF7] dark:bg-slate-950/60 px-2.5 py-1.5 rounded-[6px] border border-neutral-200/50 dark:border-slate-800/50 font-mono">
                     "Ze made coffee for <strong>Reflexive</strong>."
                   </code>
                 </div>
@@ -379,156 +377,240 @@ export default function PhoneSimulator({
 
           {/* Tab: LIBRARY inside phone */}
           {currentPhoneTab === 'library' && (
-            <div className="flex flex-col gap-3 animate-in fade-in duration-200 text-[#0F172A] dark:text-slate-100">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-slate-400 font-sans">Pronoun Database</span>
-                <span className="text-[9px] uppercase font-mono text-neutral-400 dark:text-slate-500">sqlite_local.db</span>
+            <div className="flex flex-col gap-5 animate-in fade-in duration-200 text-[#0F172A] dark:text-slate-100">
+              
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-neutral-200/60 dark:border-slate-850 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 dark:text-slate-400 font-sans">Pronoun Database</span>
+                    <span className="text-[9px] uppercase font-mono text-neutral-400 dark:text-slate-500 px-1.5 py-0.5 bg-neutral-100 dark:bg-slate-900 rounded border border-neutral-200/50 dark:border-slate-800/50">sqlite_local.db</span>
+                  </div>
+                  <h3 className="text-xl font-light font-serif italic text-[#0F172A] dark:text-slate-100 mt-1">Pronoun Library</h3>
+                  <p className="text-xs text-neutral-500 dark:text-slate-400 font-light mt-0.5">Configure active sets for practice or add your own custom entries.</p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewSubject('');
+                    setNewObject('');
+                    setNewPossessiveDet('');
+                    setNewPossessivePro('');
+                    setNewReflexive('');
+                    setNewNotes('');
+                    setNewAssociatedNames('');
+                    setIsAddModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-[8px] bg-[#0F172A] dark:bg-indigo-600 hover:bg-neutral-800 dark:hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-xs"
+                >
+                  <Plus className="w-3.5 h-3.5 text-white" />
+                  Add Custom Set
+                </button>
               </div>
 
               {/* Quick Bulk Activation Controls */}
-              <div className="bg-indigo-50/60 dark:bg-indigo-950/40 rounded-[12px] p-2.5 border border-indigo-100 dark:border-indigo-900/30 flex flex-col gap-2 transition-colors">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9.5px] font-semibold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                    {pronounSets.filter(s => s.isEnabled !== false).length} of {pronounSets.length} sets active for practice
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
+              <div className="bg-indigo-50/60 dark:bg-indigo-950/20 rounded-[12px] p-4 border border-indigo-100/80 dark:border-indigo-900/30 flex flex-col sm:flex-row justify-between items-center gap-3 transition-colors">
+                <span className="text-xs font-semibold text-indigo-900 dark:text-indigo-300 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                  {pronounSets.filter(s => s.isEnabled !== false).length} of {pronounSets.length} sets active for study rotation
+                </span>
+                <div className="flex gap-2 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={() => handleToggleAll(true)}
-                    className="text-[8.5px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/40 py-1.5 rounded-[6px] transition-all cursor-pointer shadow-2xs text-center font-sans"
+                    className="flex-1 sm:flex-none px-4 py-2 text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-white dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/40 rounded-[6px] transition-all cursor-pointer shadow-2xs text-center font-sans"
                   >
                     Activate All
                   </button>
                   <button
                     type="button"
                     onClick={() => handleToggleAll(false)}
-                    className="text-[8.5px] font-bold uppercase tracking-wider text-neutral-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-neutral-50 dark:hover:bg-slate-850 border border-neutral-200 dark:border-slate-800 py-1.5 rounded-[6px] transition-all cursor-pointer shadow-2xs text-center font-sans"
+                    className="flex-1 sm:flex-none px-4 py-2 text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-neutral-50 dark:hover:bg-slate-850 border border-neutral-200 dark:border-slate-850 rounded-[6px] transition-all cursor-pointer shadow-2xs text-center font-sans"
                   >
                     Deactivate All
                   </button>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2.5 max-h-[460px] overflow-y-auto pr-0.5">
-                {pronounSets.map(set => (
-                  <div 
-                    key={set.id}
-                    onClick={() => setSelectedDetailsSet(set)}
-                    className={`p-3 rounded-[12px] border transition-all text-left cursor-pointer ${set.isEnabled === false ? 'opacity-65 bg-neutral-50/50 dark:bg-slate-900/40' : 'bg-white dark:bg-slate-900'} ${selectedDetailsSet?.id === set.id ? 'border-[#0F172A] dark:border-indigo-500 ring-1 ring-[#0F172A] dark:ring-indigo-500 shadow-xs' : 'border-neutral-200 dark:border-slate-800 hover:border-neutral-300 dark:hover:border-slate-700'}`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <span className="text-xs font-serif font-bold capitalize italic text-[#0F172A] dark:text-slate-100">
-                        {set.subject} / {set.object}
-                      </span>
-                      <div className="flex gap-1.5 items-center">
-                        {/* Toggle active switch */}
-                        <div 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleEnable(set.id);
-                          }}
-                          className="flex items-center gap-1.5 cursor-pointer group"
-                          title={set.isEnabled !== false ? 'Deactivate set' : 'Activate set'}
-                        >
-                          <span className={`text-[7.5px] font-bold uppercase tracking-wider ${set.isEnabled !== false ? 'text-emerald-700 dark:text-emerald-400' : 'text-neutral-400 dark:text-slate-500'}`}>
-                            {set.isEnabled !== false ? 'Active' : 'Disabled'}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                {/* Left side: Pronoun Sets Grid (7 cols) */}
+                <div className="lg:col-span-7 flex flex-col gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {pronounSets.map(set => (
+                      <div 
+                        key={set.id}
+                        onClick={() => setSelectedDetailsSet(set)}
+                        className={`p-4 rounded-[12px] border transition-all text-left cursor-pointer ${set.isEnabled === false ? 'opacity-65 bg-neutral-50/50 dark:bg-slate-900/40' : 'bg-white dark:bg-slate-900'} ${selectedDetailsSet?.id === set.id ? 'border-indigo-500 dark:border-indigo-500 ring-2 ring-indigo-500/20 dark:ring-indigo-500/30 shadow-xs' : 'border-neutral-200 dark:border-slate-850 hover:border-neutral-300 dark:hover:border-slate-750'}`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm font-serif font-bold capitalize italic text-[#0F172A] dark:text-slate-100">
+                            {set.subject} / {set.object}
                           </span>
-                          <div className={`w-6.5 h-3.5 rounded-full p-0.5 transition-colors duration-200 ${set.isEnabled !== false ? 'bg-emerald-500' : 'bg-neutral-200 dark:bg-slate-700'}`}>
-                            <div className={`w-2.5 h-2.5 rounded-full bg-white shadow-xs transition-transform duration-200 ${set.isEnabled !== false ? 'translate-x-3' : 'translate-x-0'}`} />
+                          <div className="flex gap-1.5 items-center">
+                            {/* Toggle active switch */}
+                            <div 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleEnable(set.id);
+                              }}
+                              className="flex items-center gap-1.5 cursor-pointer group"
+                              title={set.isEnabled !== false ? 'Deactivate set' : 'Activate set'}
+                            >
+                              <span className={`text-[7.5px] font-bold uppercase tracking-wider ${set.isEnabled !== false ? 'text-emerald-700 dark:text-emerald-400' : 'text-neutral-400 dark:text-slate-500'}`}>
+                                {set.isEnabled !== false ? 'Active' : 'Disabled'}
+                              </span>
+                              <div className={`w-6.5 h-3.5 rounded-full p-0.5 transition-colors duration-200 ${set.isEnabled !== false ? 'bg-emerald-500' : 'bg-neutral-200 dark:bg-slate-700'}`}>
+                                <div className={`w-2.5 h-2.5 rounded-full bg-white shadow-xs transition-transform duration-200 ${set.isEnabled !== false ? 'translate-x-3' : 'translate-x-0'}`} />
+                              </div>
+                            </div>
+
+                            {set.isMastered ? (
+                              <span className="text-[7.5px] uppercase font-bold tracking-wider bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded-[4px] border border-emerald-200 dark:border-emerald-900/40">
+                                Mastered
+                              </span>
+                            ) : (
+                              <span className="text-[7.5px] uppercase font-bold tracking-wider bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-[4px] border border-indigo-100 dark:border-indigo-900/40">
+                                {Math.round((Object.values(set.correctAttempts || {}).reduce((a, b) => a + b, 0) / 15) * 100)}%
+                              </span>
+                            )}
+                            {set.isCustom && (
+                              <span className="text-[7.5px] uppercase font-bold tracking-wider bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded-[4px] border border-amber-200 dark:border-amber-900/40">
+                                User
+                              </span>
+                            )}
                           </div>
                         </div>
 
-                        {set.isMastered ? (
-                          <span className="text-[7.5px] uppercase font-bold tracking-wider bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.5 rounded-[4px] border border-emerald-200 dark:border-emerald-900/40">
-                            Mastered
-                          </span>
-                        ) : (
-                          <span className="text-[7.5px] uppercase font-bold tracking-wider bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-[4px] border border-indigo-100 dark:border-indigo-900/40">
-                            {Math.round((Object.values(set.correctAttempts || {}).reduce((a, b) => a + b, 0) / 15) * 100)}%
-                          </span>
+                        {set.associatedNames && (
+                          <div className="mt-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-medium flex items-center gap-1">
+                            <span className="w-1 h-1 rounded-full bg-indigo-500 dark:bg-indigo-400"></span>
+                            For: <strong className="font-semibold">{set.associatedNames}</strong>
+                          </div>
                         )}
-                        {set.isCustom && (
-                          <span className="text-[7.5px] uppercase font-bold tracking-wider bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded-[4px] border border-amber-200 dark:border-amber-900/40">
-                            User
+
+                        <div className="flex gap-1 flex-wrap text-[9px] font-mono text-neutral-500 dark:text-slate-400 mt-2">
+                          <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-slate-800">{set.subject}</span>
+                          <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-slate-800">{set.object}</span>
+                          <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-slate-800">{set.possessiveDet}</span>
+                          <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-slate-800">{set.possessivePro}</span>
+                          <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1.5 py-0.5 rounded border border-neutral-200 dark:border-slate-800">{set.reflexive}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-neutral-100 dark:border-slate-800 text-[10px]">
+                          <span className="text-[8.5px] uppercase tracking-wider text-neutral-400 dark:text-slate-500 font-bold">
+                            Reviews: {set.reviewCount}
                           </span>
-                        )}
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditClick(set);
+                              }}
+                              className="px-2 py-0.5 border border-neutral-200 dark:border-slate-800 rounded-[4px] font-bold uppercase tracking-wider text-[8.5px] text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-200 hover:bg-neutral-50 dark:hover:bg-slate-800 cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteSet(set.id, e)}
+                              className="p-0.5 text-neutral-400 dark:text-slate-500 hover:text-red-600 rounded cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-
-                    {set.associatedNames && (
-                      <div className="mt-1 text-[9px] text-indigo-600 dark:text-indigo-400 font-medium flex items-center gap-1">
-                        <span className="w-1 h-1 rounded-full bg-indigo-500 dark:bg-indigo-400"></span>
-                        For: <strong className="font-semibold">{set.associatedNames}</strong>
-                      </div>
-                    )}
-
-                    <div className="flex gap-1 flex-wrap text-[8.5px] font-mono text-neutral-500 dark:text-slate-400 mt-1.5">
-                      <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1 rounded border border-neutral-200 dark:border-slate-800">{set.subject}</span>
-                      <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1 rounded border border-neutral-200 dark:border-slate-800">{set.object}</span>
-                      <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1 rounded border border-neutral-200 dark:border-slate-800">{set.possessiveDet}</span>
-                      <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1 rounded border border-neutral-200 dark:border-slate-800">{set.possessivePro}</span>
-                      <span className="bg-[#FDFBF7] dark:bg-slate-950 px-1 rounded border border-neutral-200 dark:border-slate-800">{set.reflexive}</span>
-                    </div>
-
-                    <div className="flex justify-between items-center mt-2.5 pt-2 border-t border-neutral-100 dark:border-slate-800 text-[9px]">
-                      <span className="text-[8px] uppercase tracking-wider text-neutral-400 dark:text-slate-500 font-bold">
-                        Reviews: {set.reviewCount}
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditClick(set);
-                          }}
-                          className="px-2 py-0.5 border border-neutral-200 dark:border-slate-800 rounded-[4px] font-bold uppercase tracking-wider text-[8px] text-neutral-500 dark:text-slate-400 hover:text-neutral-800 dark:hover:text-slate-200 hover:bg-neutral-50 dark:hover:bg-slate-800 cursor-pointer"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={(e) => handleDeleteSet(set.id, e)}
-                          className="p-0.5 text-neutral-400 dark:text-slate-500 hover:text-red-600 rounded cursor-pointer"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                {/* Right side: Detailed Inspector (5 cols) */}
+                <div className="lg:col-span-5 flex flex-col gap-4">
+                  {selectedDetailsSet ? (
+                    <div className="p-5 rounded-[12px] bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-850 shadow-xs animate-in fade-in duration-200 lg:sticky lg:top-24 text-left">
+                      <span className="text-[8.5px] font-bold uppercase tracking-widest bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-[4px] border border-indigo-100/50 dark:border-indigo-900/40 font-mono">
+                        Grammar Inspector
+                      </span>
+                      <h3 className="text-base font-light text-[#0F172A] dark:text-slate-100 mt-3.5 flex items-center gap-2">
+                        Breakdown for <span className="font-serif italic font-normal text-indigo-700 dark:text-indigo-300 capitalize">"{selectedDetailsSet.subject}"</span>
+                      </h3>
+
+                      <div className="grid grid-cols-5 gap-1.5 mt-4 font-mono text-center text-[10px]">
+                        <div className="p-1.5 rounded-[6px] bg-[#FDFBF7] dark:bg-slate-950 border border-neutral-200/80 dark:border-slate-800">
+                          <span className="text-[7px] font-bold text-neutral-400 block uppercase tracking-wider mb-1">Subject</span>
+                          <span className="font-serif italic text-neutral-800 dark:text-slate-300 block text-xs">{selectedDetailsSet.subject}</span>
+                        </div>
+                        <div className="p-1.5 rounded-[6px] bg-[#FDFBF7] dark:bg-slate-950 border border-neutral-200/80 dark:border-slate-800">
+                          <span className="text-[7px] font-bold text-neutral-400 block uppercase tracking-wider mb-1">Object</span>
+                          <span className="font-serif italic text-neutral-800 dark:text-slate-300 block text-xs">{selectedDetailsSet.object}</span>
+                        </div>
+                        <div className="p-1.5 rounded-[6px] bg-[#FDFBF7] dark:bg-slate-950 border border-neutral-200/80 dark:border-slate-800">
+                          <span className="text-[7px] font-bold text-neutral-400 block uppercase tracking-wider mb-1">Poss Det</span>
+                          <span className="font-serif italic text-neutral-800 dark:text-slate-300 block text-xs">{selectedDetailsSet.possessiveDet}</span>
+                        </div>
+                        <div className="p-1.5 rounded-[6px] bg-[#FDFBF7] dark:bg-slate-950 border border-neutral-200/80 dark:border-slate-800">
+                          <span className="text-[7px] font-bold text-neutral-400 block uppercase tracking-wider mb-1">Poss Pro</span>
+                          <span className="font-serif italic text-neutral-800 dark:text-slate-300 block text-xs">{selectedDetailsSet.possessivePro}</span>
+                        </div>
+                        <div className="p-1.5 rounded-[6px] bg-[#FDFBF7] dark:bg-slate-950 border border-neutral-200/80 dark:border-slate-800">
+                          <span className="text-[7px] font-bold text-neutral-400 block uppercase tracking-wider mb-1">Reflexive</span>
+                          <span className="font-serif italic text-neutral-800 dark:text-slate-300 block text-xs">{selectedDetailsSet.reflexive}</span>
+                        </div>
+                      </div>
+
+                      {selectedDetailsSet.notes && (
+                        <p className="text-xs text-neutral-500 dark:text-slate-400 mt-4 italic font-light pl-3 border-l-2 border-indigo-500">
+                          "{selectedDetailsSet.notes}"
+                        </p>
+                      )}
+
+                      <div className="mt-5 flex flex-col gap-2.5 text-xs">
+                        <div className="p-3 bg-[#FDFBF7] dark:bg-slate-950/40 border border-neutral-200 dark:border-slate-800 rounded-[8px]">
+                          <span className="font-bold text-[8px] text-neutral-400 dark:text-slate-500 uppercase tracking-wider block mb-1 font-mono">Subject Sentence Example</span>
+                          <p className="font-light">{formatSentence({ type: 'subject', template: '___ is going to the library.' }, selectedDetailsSet, true)}</p>
+                        </div>
+                        <div className="p-3 bg-[#FDFBF7] dark:bg-slate-950/40 border border-neutral-200 dark:border-slate-800 rounded-[8px]">
+                          <span className="font-bold text-[8px] text-neutral-400 dark:text-slate-500 uppercase tracking-wider block mb-1 font-mono">Object Sentence Example</span>
+                          <p className="font-light">{formatSentence({ type: 'object', template: 'The teacher asked ___ to answer.' }, selectedDetailsSet, true)}</p>
+                        </div>
+                        <div className="p-3 bg-[#FDFBF7] dark:bg-slate-950/40 border border-neutral-200 dark:border-slate-800 rounded-[8px]">
+                          <span className="font-bold text-[8px] text-neutral-400 dark:text-slate-500 uppercase tracking-wider block mb-1 font-mono">Possessive Determiner Example</span>
+                          <p className="font-light">{formatSentence({ type: 'possessiveDet', template: 'They borrow ___ notebook.' }, selectedDetailsSet, true)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-8 rounded-[12px] border border-dashed border-neutral-200 dark:border-slate-800 flex flex-col items-center justify-center text-center text-neutral-400 dark:text-slate-500 py-16 sticky top-24">
+                      <Layers className="w-10 h-10 text-neutral-300 dark:text-slate-700 mb-3" />
+                      <span className="text-xs font-bold uppercase tracking-wider">Select a Pronoun Set</span>
+                      <p className="text-xs text-neutral-400 dark:text-slate-600 mt-2 max-w-[220px] font-light leading-relaxed">
+                        Click any set in the database to inspect detailed grammar conjugations and syntax context sentences.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
               </div>
 
-              {/* Floating Action Button (FAB) inside screen */}
-              <button
-                onClick={() => {
-                  setNewSubject('');
-                  setNewObject('');
-                  setNewPossessiveDet('');
-                  setNewPossessivePro('');
-                  setNewReflexive('');
-                  setNewNotes('');
-                  setNewAssociatedNames('');
-                  setIsAddModalOpen(true);
-                }}
-                className="absolute bottom-4 right-4 w-11 h-11 rounded-full bg-[#0F172A] dark:bg-indigo-650 hover:bg-neutral-800 dark:hover:bg-indigo-700 text-white shadow-lg flex items-center justify-center transition-transform active:scale-95 cursor-pointer z-20 hover:scale-105"
-                title="Add Custom Set"
-              >
-                <Plus className="w-5 h-5 text-white" />
-              </button>
             </div>
           )}
 
         </div>
 
-        {/* Sliding Bottom Drawer inside Phone Bezel */}
+        {/* Custom Dialog overlay modal - rendered on top of entire layout */}
         {isAddModalOpen && (
-          <div className="absolute inset-0 bg-neutral-950/60 backdrop-blur-xs flex items-end justify-center z-50 animate-in fade-in duration-200">
-            <div className="bg-[#FDFBF7] dark:bg-slate-900 w-full rounded-t-[20px] p-4 shadow-xl border-t border-neutral-300 dark:border-slate-800 flex flex-col gap-3 max-h-[85%] overflow-y-auto animate-in slide-in-from-bottom duration-300">
-              <div className="flex justify-between items-center pb-2 border-b border-neutral-200 dark:border-slate-800">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#0F172A] dark:text-slate-100">
-                  {editingSet ? 'Room SQL: Edit Set' : 'Room SQL: Insert Set'}
+          <div className="fixed inset-0 bg-neutral-950/65 backdrop-blur-xs flex items-center justify-center z-50 animate-in fade-in duration-200 p-4">
+            <div className="bg-[#FDFBF7] dark:bg-slate-900 w-full max-w-md rounded-[16px] p-6 shadow-xl border border-neutral-200 dark:border-slate-800 flex flex-col gap-4 max-h-[90%] overflow-y-auto animate-in zoom-in-95 duration-200">
+              
+              <div className="flex justify-between items-center pb-3 border-b border-neutral-200 dark:border-slate-800">
+                <span className="text-xs font-bold uppercase tracking-widest text-[#0F172A] dark:text-slate-100 flex items-center gap-1.5">
+                  <Database className="w-4 h-4 text-indigo-500" />
+                  {editingSet ? 'Update Pronoun Record' : 'Insert Pronoun Record'}
                 </span>
                 <button 
+                  type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   className="p-1 rounded-full hover:bg-neutral-200/50 dark:hover:bg-slate-800 text-neutral-400 hover:text-[#0F172A] dark:hover:text-white transition cursor-pointer"
                 >
@@ -536,109 +618,109 @@ export default function PhoneSimulator({
                 </button>
               </div>
 
-              <form onSubmit={handleCreateOrUpdate} className="space-y-3 text-[10px] text-left">
-                <div className="grid grid-cols-2 gap-2">
+              <form onSubmit={handleCreateOrUpdate} className="space-y-4 text-left">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[8px] uppercase tracking-widest font-bold text-neutral-400 mb-0.5">1. Subject (Nom)</label>
+                    <label className="block text-[8.5px] uppercase tracking-widest font-bold text-neutral-400 mb-1">1. Subject (Nom)</label>
                     <input 
                       type="text" 
                       placeholder="e.g. ze"
                       value={newSubject}
                       onChange={e => setNewSubject(e.target.value)}
-                      className="w-full p-2.5 rounded-[6px] border border-neutral-300 focus:outline-none focus:border-[#0F172A] bg-white text-xs text-[#0F172A]"
+                      className="w-full p-2.5 rounded-[8px] border border-neutral-200 dark:border-slate-850 focus:outline-none focus:border-indigo-500 bg-white dark:bg-slate-950 text-xs text-[#0F172A] dark:text-slate-100 transition-colors"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-[8px] uppercase tracking-widest font-bold text-neutral-400 mb-0.5">2. Object (Acc)</label>
+                    <label className="block text-[8.5px] uppercase tracking-widest font-bold text-neutral-400 mb-1">2. Object (Acc)</label>
                     <input 
                       type="text" 
                       placeholder="e.g. zir"
                       value={newObject}
                       onChange={e => setNewObject(e.target.value)}
-                      className="w-full p-2.5 rounded-[6px] border border-neutral-300 focus:outline-none focus:border-[#0F172A] bg-white text-xs text-[#0F172A]"
+                      className="w-full p-2.5 rounded-[8px] border border-neutral-200 dark:border-slate-850 focus:outline-none focus:border-indigo-500 bg-white dark:bg-slate-950 text-xs text-[#0F172A] dark:text-slate-100 transition-colors"
                       required
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <label className="block text-[8px] uppercase tracking-widest font-bold text-neutral-400 mb-0.5">3. Poss Det</label>
+                    <label className="block text-[8.5px] uppercase tracking-widest font-bold text-neutral-400 mb-1">3. Poss Det</label>
                     <input 
                       type="text" 
                       placeholder="e.g. zir"
                       value={newPossessiveDet}
                       onChange={e => setNewPossessiveDet(e.target.value)}
-                      className="w-full p-2 rounded-[6px] border border-neutral-300 focus:outline-none focus:border-[#0F172A] bg-white text-xs text-[#0F172A]"
+                      className="w-full p-2.5 rounded-[8px] border border-neutral-200 dark:border-slate-850 focus:outline-none focus:border-indigo-500 bg-white dark:bg-slate-950 text-xs text-[#0F172A] dark:text-slate-100 transition-colors"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-[8px] uppercase tracking-widest font-bold text-neutral-400 mb-0.5">4. Poss Pro</label>
+                    <label className="block text-[8.5px] uppercase tracking-widest font-bold text-neutral-400 mb-1">4. Poss Pro</label>
                     <input 
                       type="text" 
                       placeholder="e.g. zirs"
                       value={newPossessivePro}
                       onChange={e => setNewPossessivePro(e.target.value)}
-                      className="w-full p-2 rounded-[6px] border border-neutral-300 focus:outline-none focus:border-[#0F172A] bg-white text-xs text-[#0F172A]"
+                      className="w-full p-2.5 rounded-[8px] border border-neutral-200 dark:border-slate-850 focus:outline-none focus:border-indigo-500 bg-white dark:bg-slate-950 text-xs text-[#0F172A] dark:text-slate-100 transition-colors"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-[8px] uppercase tracking-widest font-bold text-neutral-400 mb-0.5">5. Reflexive</label>
+                    <label className="block text-[8.5px] uppercase tracking-widest font-bold text-neutral-400 mb-1">5. Reflexive</label>
                     <input 
                       type="text" 
                       placeholder="e.g. zirself"
                       value={newReflexive}
                       onChange={e => setNewReflexive(e.target.value)}
-                      className="w-full p-2 rounded-[6px] border border-neutral-300 focus:outline-none focus:border-[#0F172A] bg-white text-xs text-[#0F172A]"
+                      className="w-full p-2.5 rounded-[8px] border border-neutral-200 dark:border-slate-850 focus:outline-none focus:border-indigo-500 bg-white dark:bg-slate-950 text-xs text-[#0F172A] dark:text-slate-100 transition-colors"
                       required
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[8px] uppercase tracking-widest font-bold text-neutral-400 mb-0.5">Usage Notes / Details</label>
+                  <label className="block text-[8.5px] uppercase tracking-widest font-bold text-neutral-400 mb-1">Usage Notes & Tips</label>
                   <textarea 
-                    placeholder="e.g. Pronunciation tips, origins..."
-                    rows={2}
+                    placeholder="e.g. Pronunciation tips, history or context..."
+                    rows={2.5}
                     value={newNotes}
                     onChange={e => setNewNotes(e.target.value)}
-                    className="w-full p-2.5 rounded-[6px] border border-neutral-300 focus:outline-none focus:border-[#0F172A] bg-white text-xs text-[#0F172A] resize-none"
+                    className="w-full p-2.5 rounded-[8px] border border-neutral-200 dark:border-slate-850 focus:outline-none focus:border-indigo-500 bg-white dark:bg-slate-950 text-xs text-[#0F172A] dark:text-slate-100 resize-none transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[8px] uppercase tracking-widest font-bold text-neutral-400 mb-0.5 flex justify-between items-center">
+                  <label className="block text-[8.5px] uppercase tracking-widest font-bold text-neutral-400 mb-1 flex justify-between items-center">
                     <span>Associated Name(s)</span>
-                    <span className="text-[7.5px] text-indigo-500 font-mono normal-case">Optional</span>
+                    <span className="text-[7.5px] text-indigo-500 dark:text-indigo-400 font-mono normal-case font-bold">Optional</span>
                   </label>
                   <input 
                     type="text" 
                     placeholder="e.g. Ash, Taylor"
                     value={newAssociatedNames}
                     onChange={e => setNewAssociatedNames(e.target.value)}
-                    className="w-full p-2.5 rounded-[6px] border border-indigo-200 focus:outline-none focus:border-[#0F172A] bg-indigo-50/20 text-xs text-[#0F172A]"
+                    className="w-full p-2.5 rounded-[8px] border border-indigo-200/60 dark:border-indigo-900/40 focus:outline-none focus:border-indigo-500 bg-indigo-50/10 dark:bg-slate-950 text-xs text-[#0F172A] dark:text-slate-100 transition-colors"
                   />
-                  <p className="text-[8px] text-neutral-400 mt-0.5 leading-tight font-light">
-                    Links specific people to this set for tailored context sentences during practice.
+                  <p className="text-[8.5px] text-neutral-400 dark:text-slate-500 mt-1 leading-tight font-light">
+                    Assigning a name inserts personalized names directly into flashcard practice sentences.
                   </p>
                 </div>
 
-                <div className="pt-2 flex justify-end gap-2 border-t border-neutral-200">
+                <div className="pt-3 flex justify-end gap-2 border-t border-neutral-200 dark:border-slate-800">
                   <button
                     type="button"
                     onClick={() => setIsAddModalOpen(false)}
-                    className="px-3 py-2 rounded-[6px] border border-neutral-300 bg-white text-[10px] font-bold uppercase tracking-wider text-neutral-400 cursor-pointer"
+                    className="px-4 py-2 rounded-[8px] border border-neutral-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs font-bold uppercase tracking-wider text-neutral-500 hover:text-neutral-700 dark:hover:text-slate-300 hover:bg-neutral-50 dark:hover:bg-slate-900 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-[6px] bg-[#0F172A] hover:bg-neutral-800 text-white text-[10px] font-bold uppercase tracking-wider shadow-xs cursor-pointer"
+                    className="px-5 py-2 rounded-[8px] bg-[#0F172A] dark:bg-indigo-650 hover:bg-neutral-800 dark:hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shadow-xs"
                   >
-                    {editingSet ? 'Save' : 'Add Set'}
+                    {editingSet ? 'Save Changes' : 'Insert Set'}
                   </button>
                 </div>
               </form>
@@ -646,46 +728,6 @@ export default function PhoneSimulator({
           </div>
         )}
 
-        {/* Phone App Bottom Navigation Bar */}
-        <div className="h-[52px] bg-white border-t border-neutral-200 grid grid-cols-3 items-center text-center z-40 select-none px-2 shadow-sm">
-          <button
-            onClick={() => setActiveTab('study')}
-            className={`flex flex-col items-center justify-center gap-0.5 h-full transition-all duration-200 cursor-pointer ${currentPhoneTab === 'study' ? 'text-[#0F172A]' : 'text-neutral-400 hover:text-[#0F172A]'}`}
-          >
-            <div className={`px-4 py-1.5 rounded-full flex items-center justify-center transition-all ${currentPhoneTab === 'study' ? 'bg-indigo-50 text-[#0F172A]' : 'bg-transparent'}`}>
-              <BookOpen className="w-4 h-4" />
-            </div>
-            <span className="text-[9px] font-bold tracking-tight">Study</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('learn')}
-            className={`flex flex-col items-center justify-center gap-0.5 h-full transition-all duration-200 cursor-pointer ${currentPhoneTab === 'learn' ? 'text-[#0F172A]' : 'text-neutral-400 hover:text-[#0F172A]'}`}
-          >
-            <div className={`px-4 py-1.5 rounded-full flex items-center justify-center transition-all ${currentPhoneTab === 'learn' ? 'bg-indigo-50 text-[#0F172A]' : 'bg-transparent'}`}>
-              <Compass className="w-4 h-4" />
-            </div>
-            <span className="text-[9px] font-bold tracking-tight">Learn</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('library')}
-            className={`flex flex-col items-center justify-center gap-0.5 h-full transition-all duration-200 cursor-pointer ${currentPhoneTab === 'library' ? 'text-[#0F172A]' : 'text-neutral-400 hover:text-[#0F172A]'}`}
-          >
-            <div className={`px-4 py-1.5 rounded-full flex items-center justify-center transition-all ${currentPhoneTab === 'library' ? 'bg-indigo-50 text-[#0F172A]' : 'bg-transparent'}`}>
-              <Layers className="w-4 h-4" />
-            </div>
-            <span className="text-[9px] font-bold tracking-tight">Library</span>
-          </button>
-        </div>
-
-        {/* Gestures pill */}
-        <div className="h-4 bg-white flex items-center justify-center select-none pb-1 shrink-0">
-          <div className="w-24 h-1 bg-neutral-400 rounded-full"></div>
-        </div>
-
       </div>
-
-    </div>
   );
 }

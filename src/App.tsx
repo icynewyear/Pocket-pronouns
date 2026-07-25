@@ -3,7 +3,6 @@ import {
   Sparkles, 
   Shield, 
   Layers, 
-  Smartphone, 
   CheckCircle2, 
   Award, 
   Heart,
@@ -12,7 +11,6 @@ import {
 } from 'lucide-react';
 import { PronounSet, PracticeSentence, REQUIRED_CORRECT_ATTEMPTS } from './types';
 import PhoneSimulator from './components/PhoneSimulator';
-import DevWorkbench from './components/DevWorkbench';
 
 // Default seeded neopronoun sets
 const DEFAULT_PRONOUNS: PronounSet[] = [
@@ -805,7 +803,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#FDFBF7] dark:bg-slate-950 text-[#0F172A] dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-100/80 selection:dark:bg-indigo-950/80 transition-colors duration-150">
       
-      {/* Top Welcome Header - Unifying web & mobile */}
+      {/* Top Welcome Header - Clean web layout */}
       <header className="border-b border-neutral-200 dark:border-slate-850 bg-[#FDFBF7]/90 dark:bg-slate-950/90 backdrop-blur-xs sticky top-0 z-30 px-6 py-4 select-none">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3">
@@ -818,12 +816,12 @@ export default function App() {
                   Pronoun<span className="font-serif italic font-semibold text-[#0F172A] dark:text-indigo-200">Pocket</span>
                 </h1>
                 <span className="text-[9px] uppercase tracking-widest font-bold border border-[#0F172A] dark:border-indigo-500/50 text-[#0F172A] dark:text-indigo-300 px-2 py-0.5 rounded-[4px] bg-white dark:bg-slate-900">
-                  Android Live Spec Simulator
+                  Personal Practice App
                 </span>
               </div>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1 mt-0.5 font-light">
                 <Shield className="w-3.5 h-3.5 text-[#0F172A] dark:text-indigo-400 shrink-0" />
-                Offline-First Jetpack Compose & SQLite/Room DB Engine Emulator
+                Offline-First Pronoun Practice & Interactive Learning Companion
               </p>
             </div>
           </div>
@@ -839,11 +837,11 @@ export default function App() {
               {darkMode ? <Sun className="w-4.5 h-4.5 text-amber-400" /> : <Moon className="w-4.5 h-4.5 text-indigo-600" />}
             </button>
 
-            {/* Quick stats summarizing phone state */}
+            {/* Quick stats summarizing state */}
             <div className="hidden md:flex items-center gap-4 bg-white/70 dark:bg-slate-900/70 px-4 py-2 rounded-[4px] border border-neutral-200 dark:border-slate-800 text-xs font-medium">
               <div className="flex items-center gap-1.5 text-neutral-500 dark:text-slate-300">
                 <Layers className="w-4 h-4 text-[#0F172A] dark:text-indigo-400" />
-                <span>DB Rows: <strong>{pronounSets.length}</strong></span>
+                <span>Pronoun Sets: <strong>{pronounSets.length}</strong></span>
               </div>
               <div className="w-px h-4 bg-neutral-200 dark:bg-slate-800"></div>
               <div className="flex items-center gap-1.5 text-neutral-500 dark:text-slate-300">
@@ -861,77 +859,46 @@ export default function App() {
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-6 items-stretch">
         
-        {/* Left Side (5 cols): The Smartphone Simulator */}
-        <div className="lg:col-span-5 flex flex-col items-center gap-4 w-full">
-          <div className="text-center">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-500 mb-1 flex items-center justify-center gap-1.5">
-              <Smartphone className="w-3.5 h-3.5 text-[#0F172A]" /> Simulated Android Device (Pixel 8)
-            </h2>
-            <p className="text-[11px] text-neutral-400 font-light">Interact with the touch-screen exactly as on a mobile device.</p>
-          </div>
-
-          <PhoneSimulator
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            streak={streak}
-            masteredCount={masteredCount}
-            pronounSets={pronounSets}
-            sessionDeck={sessionDeck}
-            currentCardIndex={currentCardIndex}
-            isFlipped={isFlipped}
-            setIsFlipped={setIsFlipped}
-            handleCardRating={handleCardRating}
-            isAddModalOpen={isAddModalOpen}
-            setIsAddModalOpen={setIsAddModalOpen}
-            editingSet={editingSet}
-            newSubject={newSubject}
-            setNewSubject={setNewSubject}
-            newObject={newObject}
-            setNewObject={setNewObject}
-            newPossessiveDet={newPossessiveDet}
-            setNewPossessiveDet={setNewPossessiveDet}
-            newPossessivePro={newPossessivePro}
-            setNewPossessivePro={setNewPossessivePro}
-            newReflexive={newReflexive}
-            setNewReflexive={setNewReflexive}
-            newNotes={newNotes}
-            setNewNotes={setNewNotes}
-            newAssociatedNames={newAssociatedNames}
-            setNewAssociatedNames={setNewAssociatedNames}
-            handleToggleEnable={handleToggleEnable}
-            handleToggleAll={handleToggleAll}
-            handleCreateOrUpdate={handleCreateOrUpdate}
-            handleDeleteSet={handleDeleteSet}
-            handleEditClick={handleEditClick}
-            setSelectedDetailsSet={setSelectedDetailsSet}
-            selectedDetailsSet={selectedDetailsSet}
-            formatSentence={formatSentence}
-            timeString={timeString}
-          />
-        </div>
-
-        {/* Right Side (7 cols): The Android Developer Workbench & Specs */}
-        <div className="lg:col-span-7 flex flex-col gap-6 w-full">
-          <DevWorkbench
-            consoleTab={consoleTab}
-            setConsoleTab={setConsoleTab}
-            pronounSets={pronounSets}
-            dbLogs={dbLogs}
-            setDbLogs={setDbLogs}
-            selectedCodeFile={selectedCodeFile}
-            setSelectedCodeFile={setSelectedCodeFile}
-            copiedCodeKey={copiedCodeKey}
-            handleCopyCode={handleCopyCode}
-            handleDebugResetProgress={handleDebugResetProgress}
-            handleDebugMasterAll={handleDebugMasterAll}
-            handleDebugAddFaeSet={handleDebugAddFaeSet}
-            handleDebugFactoryReset={handleDebugFactoryReset}
-            selectedDetailsSet={selectedDetailsSet}
-            formatSentence={formatSentence}
-          />
-        </div>
+        <PhoneSimulator
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          streak={streak}
+          masteredCount={masteredCount}
+          pronounSets={pronounSets}
+          sessionDeck={sessionDeck}
+          currentCardIndex={currentCardIndex}
+          isFlipped={isFlipped}
+          setIsFlipped={setIsFlipped}
+          handleCardRating={handleCardRating}
+          isAddModalOpen={isAddModalOpen}
+          setIsAddModalOpen={setIsAddModalOpen}
+          editingSet={editingSet}
+          newSubject={newSubject}
+          setNewSubject={setNewSubject}
+          newObject={newObject}
+          setNewObject={setNewObject}
+          newPossessiveDet={newPossessiveDet}
+          setNewPossessiveDet={setNewPossessiveDet}
+          newPossessivePro={newPossessivePro}
+          setNewPossessivePro={setNewPossessivePro}
+          newReflexive={newReflexive}
+          setNewReflexive={setNewReflexive}
+          newNotes={newNotes}
+          setNewNotes={setNewNotes}
+          newAssociatedNames={newAssociatedNames}
+          setNewAssociatedNames={setNewAssociatedNames}
+          handleToggleEnable={handleToggleEnable}
+          handleToggleAll={handleToggleAll}
+          handleCreateOrUpdate={handleCreateOrUpdate}
+          handleDeleteSet={handleDeleteSet}
+          handleEditClick={handleEditClick}
+          setSelectedDetailsSet={setSelectedDetailsSet}
+          selectedDetailsSet={selectedDetailsSet}
+          formatSentence={formatSentence}
+          timeString={timeString}
+        />
 
       </main>
 
@@ -942,9 +909,9 @@ export default function App() {
             Made with <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> to foster inclusion, normalize pronouns, and accelerate learning.
           </p>
           <div className="flex gap-4">
-            <span className="text-[#0F172A] dark:text-slate-300 font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 dark:border-slate-800 pb-0.5">Offline SQLite/Room Simulator</span>
-            <span className="text-[#0F172A] dark:text-slate-300 font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 dark:border-slate-800 pb-0.5">Jetpack Compose Layouts</span>
-            <span className="text-[#0F172A] dark:text-slate-300 font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 dark:border-slate-800 pb-0.5">MVVM StateFlow Architecture</span>
+            <span className="text-[#0F172A] dark:text-slate-300 font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 dark:border-slate-800 pb-0.5">Interactive Practice</span>
+            <span className="text-[#0F172A] dark:text-slate-300 font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 dark:border-slate-800 pb-0.5">Custom Pronoun Sets</span>
+            <span className="text-[#0F172A] dark:text-slate-300 font-semibold uppercase tracking-wider text-[9px] border-b border-neutral-200 dark:border-slate-800 pb-0.5">Progress Analytics</span>
           </div>
         </div>
       </footer>
