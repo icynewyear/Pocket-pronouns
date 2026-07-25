@@ -13,7 +13,10 @@ import {
   Check,
   Twitter,
   Linkedin,
-  Mail
+  Mail,
+  Download,
+  Smartphone,
+  X
 } from 'lucide-react';
 import { PronounSet, PracticeSentence, REQUIRED_CORRECT_ATTEMPTS } from './types';
 import PhoneSimulator from './components/PhoneSimulator';
@@ -253,6 +256,62 @@ export default function App() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => {});
+  };
+
+  // PWA One-Click Install States & Event Handlers
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent browser's default install banner so we can trigger it on-demand
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Check if running in standalone display mode
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+    
+    // Check if iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    
+    if (isStandalone) {
+      setShowInstallBtn(false);
+    } else if (isIOS) {
+      // iOS doesn't support beforeinstallprompt but we want to show our beautiful instructions!
+      setShowInstallBtn(true);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    
+    if (isIOS) {
+      setIsInstallModalOpen(true);
+      return;
+    }
+
+    if (!deferredPrompt) {
+      // Fallback for desktop browsers/others where event hasn't fired
+      setIsInstallModalOpen(true);
+      return;
+    }
+
+    // Trigger native browser install prompt
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`PWA: User response to install prompt: ${outcome}`);
+    
+    setDeferredPrompt(null);
+    setShowInstallBtn(false);
   };
 
   // Helper to log SQL statement queries
@@ -849,6 +908,19 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* PWA Install Button */}
+            {showInstallBtn && (
+              <button
+                type="button"
+                onClick={handleInstallClick}
+                className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[8px] text-xs font-semibold cursor-pointer shadow-sm transition-all duration-200 active:scale-95 animate-pulse hover:animate-none border border-indigo-500"
+                title="Install PronounPocket on your device"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span className="hidden xs:inline">Install App</span>
+              </button>
+            )}
+
             {/* Dark Mode Toggle */}
             <button
               onClick={() => setDarkMode(!darkMode)}
@@ -934,6 +1006,18 @@ export default function App() {
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 w-full md:w-auto">
+            {/* PWA One-Click Install in Share Section */}
+            {showInstallBtn && (
+              <button
+                type="button"
+                onClick={handleInstallClick}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-[12px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold cursor-pointer shadow-sm transition-all duration-200 active:scale-95 animate-pulse hover:animate-none border border-indigo-500"
+              >
+                <Download className="w-4 h-4 text-indigo-100 animate-bounce" />
+                <span>Install App</span>
+              </button>
+            )}
+
             {/* Copy Link button */}
             <button
               type="button"
@@ -1005,6 +1089,63 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* PWA Installation Guidance Modal */}
+      {isInstallModalOpen && (
+        <div className="fixed inset-0 bg-[#0F172A]/40 dark:bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-neutral-200 dark:border-slate-800 rounded-[16px] max-w-md w-full p-6 shadow-xl relative animate-in fade-in duration-200">
+            <button
+              type="button"
+              onClick={() => setIsInstallModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-neutral-100 dark:hover:bg-slate-800 text-neutral-500 dark:text-neutral-400 cursor-pointer transition-colors"
+              aria-label="Close dialog"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex flex-col items-center text-center gap-3 mb-5">
+              <div className="w-12 h-12 rounded-[12px] bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-2xs">
+                <Smartphone className="w-6 h-6 animate-pulse" />
+              </div>
+              <h3 className="font-serif italic font-bold text-lg text-[#0F172A] dark:text-slate-100">Install PronounPocket</h3>
+              <p className="text-xs text-neutral-500 dark:text-slate-400 font-light leading-relaxed max-w-sm">
+                Install PronounPocket on your device for instant offline access, launch with a single tap, and save on screen space.
+              </p>
+            </div>
+
+            {/* Platform instructions */}
+            <div className="space-y-4 text-xs font-light text-neutral-700 dark:text-slate-300">
+              {/* iOS Safari */}
+              <div className="p-3.5 bg-neutral-50 dark:bg-slate-950/40 border border-neutral-100 dark:border-slate-850 rounded-[8px]">
+                <span className="font-bold text-[9px] text-[#4338CA] dark:text-indigo-400 uppercase tracking-wider block mb-1.5 font-mono">Apple iPhone & iPad</span>
+                <ol className="list-decimal list-inside space-y-1.5 leading-relaxed">
+                  <li>Open <span className="font-semibold">Safari</span> and navigate to PronounPocket.</li>
+                  <li>Tap the <span className="font-semibold">Share button</span> (square with upward arrow) in the toolbar.</li>
+                  <li>Scroll down the share sheet and tap <span className="font-semibold">"Add to Home Screen"</span>.</li>
+                </ol>
+              </div>
+
+              {/* Android & Desktop browsers */}
+              <div className="p-3.5 bg-neutral-50 dark:bg-slate-950/40 border border-neutral-100 dark:border-slate-850 rounded-[8px]">
+                <span className="font-bold text-[9px] text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-1.5 font-mono">Android & Desktop (Chrome/Edge/Firefox)</span>
+                <ol className="list-decimal list-inside space-y-1.5 leading-relaxed">
+                  <li>Click/tap the install button (<span className="font-semibold">Download icon</span>) in our header or below.</li>
+                  <li>If prompted by the browser, confirm the installation to place an icon on your desktop or home screen.</li>
+                  <li>Alternatively, click your browser's menu (three dots icon) and select <span className="font-semibold">"Install App"</span>.</li>
+                </ol>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsInstallModalOpen(false)}
+              className="mt-6 w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[12px] text-xs font-semibold cursor-pointer transition-colors shadow-sm"
+            >
+              Got it, thanks!
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
