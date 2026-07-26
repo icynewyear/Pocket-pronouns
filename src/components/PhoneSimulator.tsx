@@ -20,7 +20,9 @@ import {
   ArrowRight,
   Users,
   Link2,
-  Share2
+  Share2,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { PronounSet, PracticeSentence, Person, SessionCard } from '../types';
 
@@ -144,6 +146,7 @@ export default function PhoneSimulator({
 
   // Prepopulated link generation state & handler
   const [copiedShareLink, setCopiedShareLink] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const [githubPagesUrl, setGithubPagesUrl] = useState(() => {
     return localStorage.getItem('pronoun_pocket_github_pages_url') || 'https://icynewyear.github.io/Pocket-pronouns/';
   });
@@ -234,6 +237,107 @@ export default function PhoneSimulator({
     }
 
     return templateString.replace("___", displayPronoun);
+  };
+
+  // Phonetic translation dictionary for natural sounding neopronouns in TTS engines
+  const getPhoneticSpokenText = (text: string) => {
+    let phonetic = text;
+    const replacements: { [key: string]: string } = {
+      "xe": "zee", "Xe": "Zee",
+      "xem": "zem", "Xem": "Zem",
+      "xyr": "zeer", "Xyr": "Zeer",
+      "xyrs": "zeers", "Xyrs": "Zeers",
+      "xemself": "zemself", "Xemself": "Zemself",
+      
+      "ey": "ay", "Ey": "Ay",
+      "eir": "air", "Eir": "Air",
+      "eirs": "airs", "Eirs": "Airs",
+      
+      "fae": "fay", "Fae": "Fay",
+      "faer": "fair", "Faer": "Fair",
+      "faers": "fairs", "Faers": "Fairs",
+      "faeself": "fay self", "Faeself": "Fay self",
+      
+      "ne": "nee", "Ne": "Nee",
+      "nir": "neer", "Nir": "Neer",
+      "nirs": "neers", "Nirs": "Neers",
+      "nemself": "nem self", "Nemself": "Nem self",
+      
+      "ze": "zee", "Ze": "Zee",
+      "zir": "zeer", "Zir": "Zeer",
+      "zirs": "zeers", "Zirs": "Zeers",
+      "zirself": "zeer self", "Zirself": "Zeer self",
+      
+      "hir": "heer", "Hir": "Heer",
+      "hirs": "heers", "Hirs": "Heers",
+      "hirself": "heer self", "Hirself": "Heer self",
+    };
+
+    Object.entries(replacements).forEach(([original, replaceWith]) => {
+      const regex = new RegExp(`\\b${original}\\b`, 'g');
+      phonetic = phonetic.replace(regex, replaceWith);
+    });
+
+    return phonetic;
+  };
+
+  // Helper to generate full plain text sentence for speech synthesis
+  const getSpokenSentence = (sentence: PracticeSentence, set: PronounSet, reveal: boolean, personName?: string) => {
+    const pronounVal = reveal ? getCorrectPronounValue(set, sentence.type) : "blank";
+    return getContextualMCQOptionText(sentence, set, pronounVal, personName);
+  };
+
+  // Handle playing and pausing Speech Synthesis
+  const handleSpeak = (textToSpeak: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      alert("Text-to-speech is not supported in this browser environment.");
+      return;
+    }
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const phoneticText = getPhoneticSpokenText(textToSpeak);
+    const utterance = new SpeechSynthesisUtterance(phoneticText);
+    
+    // Attempt to pick a premium English voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const englishVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('natural')) ||
+                        voices.find(v => v.lang.startsWith('en'));
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    }
+
+    utterance.rate = 0.95; // Slightly slower for clear, educational cadence
+    utterance.pitch = 1.0;
+
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+
+    utterance.onerror = (e) => {
+      // Ignore 'interrupted' because cancel() triggers it
+      if (e.error !== 'interrupted') {
+        console.error("Speech synthesis error:", e);
+      }
+      setIsSpeaking(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
   };
 
   // Memoized options for Contextual Multiple Choice Mode
@@ -448,9 +552,33 @@ export default function PhoneSimulator({
                             <span className="text-[8px] font-bold uppercase tracking-widest text-[#0F172A] dark:text-indigo-300 bg-[#EEF2FF] dark:bg-indigo-950/60 border border-[#EEF2FF]/40 dark:border-indigo-900/40 px-2 py-0.5 rounded-[4px]">
                               {sessionDeck[currentCardIndex].sentence.type.toUpperCase()}
                             </span>
-                            <span className="text-[8px] text-neutral-400 dark:text-slate-500 flex items-center gap-1 font-semibold uppercase tracking-wider">
-                              <RotateCw className="w-2.5 h-2.5" /> Tap to flip
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const text = getSpokenSentence(
+                                    sessionDeck[currentCardIndex].sentence,
+                                    sessionDeck[currentCardIndex].set,
+                                    false,
+                                    sessionDeck[currentCardIndex].personName
+                                  );
+                                  handleSpeak(text);
+                                }}
+                                className={`p-1.5 rounded-full transition-all active:scale-90 cursor-pointer flex items-center justify-center ${
+                                  isSpeaking 
+                                    ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 animate-pulse ring-2 ring-indigo-500/20' 
+                                    : 'bg-neutral-100 dark:bg-slate-800 hover:bg-neutral-200 dark:hover:bg-slate-700 text-neutral-500 dark:text-slate-400'
+                                }`}
+                                title={isSpeaking ? "Stop Speaking" : "Listen to Pronunciation"}
+                                style={{ minWidth: '28px', minHeight: '28px' }}
+                              >
+                                {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                              </button>
+                              <span className="text-[8px] text-neutral-400 dark:text-slate-500 flex items-center gap-1 font-semibold uppercase tracking-wider">
+                                <RotateCw className="w-2.5 h-2.5" /> Tap to flip
+                              </span>
+                            </div>
                           </div>
 
                           <div className="text-center my-3">
@@ -487,7 +615,31 @@ export default function PhoneSimulator({
                             <span className="text-[8px] font-bold uppercase tracking-widest text-[#0F172A] dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/40 px-2 py-0.5 rounded-[4px]">
                               REVEALED
                             </span>
-                            <span className="text-[8px] text-neutral-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Correct Form</span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const text = getSpokenSentence(
+                                    sessionDeck[currentCardIndex].sentence,
+                                    sessionDeck[currentCardIndex].set,
+                                    true,
+                                    sessionDeck[currentCardIndex].personName
+                                  );
+                                  handleSpeak(text);
+                                }}
+                                className={`p-1.5 rounded-full transition-all active:scale-90 cursor-pointer flex items-center justify-center ${
+                                  isSpeaking 
+                                    ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 animate-pulse ring-2 ring-emerald-500/20' 
+                                    : 'bg-neutral-100 dark:bg-slate-800 hover:bg-neutral-200 dark:hover:bg-slate-700 text-neutral-500 dark:text-slate-400'
+                                }`}
+                                title={isSpeaking ? "Stop Speaking" : "Listen to Pronunciation"}
+                                style={{ minWidth: '28px', minHeight: '28px' }}
+                              >
+                                {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                              </button>
+                              <span className="text-[8px] text-neutral-400 dark:text-slate-500 font-semibold uppercase tracking-wider">Correct Form</span>
+                            </div>
                           </div>
 
                           <div className="text-center my-3 text-base font-light text-[#0F172A] dark:text-slate-200 leading-relaxed">
@@ -533,7 +685,7 @@ export default function PhoneSimulator({
                         <div className="grid grid-cols-2 gap-2.5">
                           <button
                             type="button"
-                            onClick={() => handleCardRating(false)}
+                            onClick={() => { stopSpeaking(); handleCardRating(false); }}
                             className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-[8px] border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 hover:bg-red-100/80 dark:hover:bg-red-900/20 text-red-700 dark:text-red-400 font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer"
                             style={{ minHeight: '44px' }}
                           >
@@ -542,7 +694,7 @@ export default function PhoneSimulator({
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleCardRating(true)}
+                            onClick={() => { stopSpeaking(); handleCardRating(true); }}
                             className="flex items-center justify-center gap-1.5 py-3 px-3 rounded-[8px] border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/30 hover:bg-emerald-100/80 dark:hover:bg-emerald-900/20 text-emerald-800 dark:text-emerald-400 font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer"
                             style={{ minHeight: '44px' }}
                           >
@@ -561,9 +713,33 @@ export default function PhoneSimulator({
                         <span className="text-[8px] font-bold uppercase tracking-widest text-[#0F172A] dark:text-indigo-300 bg-[#EEF2FF] dark:bg-indigo-950/60 border border-[#EEF2FF]/40 dark:border-indigo-900/40 px-2 py-0.5 rounded-[4px]">
                           {sessionDeck[currentCardIndex].sentence.type.toUpperCase()}
                         </span>
-                        <span className="text-[8px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                          🎯 Multiple Choice
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const text = getSpokenSentence(
+                                sessionDeck[currentCardIndex].sentence,
+                                sessionDeck[currentCardIndex].set,
+                                isAnswerChecked,
+                                sessionDeck[currentCardIndex].personName
+                              );
+                              handleSpeak(text);
+                            }}
+                            className={`p-1.5 rounded-full transition-all active:scale-90 cursor-pointer flex items-center justify-center ${
+                              isSpeaking 
+                                ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 animate-pulse ring-2 ring-indigo-500/20' 
+                                : 'bg-neutral-100 dark:bg-slate-800 hover:bg-neutral-200 dark:hover:bg-slate-700 text-neutral-500 dark:text-slate-400'
+                            }`}
+                            title={isSpeaking ? "Stop Speaking" : "Listen to Pronunciation"}
+                            style={{ minWidth: '28px', minHeight: '28px' }}
+                          >
+                            {isSpeaking ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                          </button>
+                          <span className="text-[8px] text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                            🎯 Multiple Choice
+                          </span>
+                        </div>
                       </div>
 
                       <div className="text-center my-6">
@@ -661,7 +837,7 @@ export default function PhoneSimulator({
                             key={option}
                             type="button"
                             disabled={isAnswerChecked}
-                            onClick={() => handleMultipleChoiceSelect(option)}
+                            onClick={() => { stopSpeaking(); handleMultipleChoiceSelect(option); }}
                             className={btnClass}
                             style={{ minHeight: '44px' }}
                           >
@@ -689,7 +865,7 @@ export default function PhoneSimulator({
                       {isAnswerChecked && (
                         <button
                           type="button"
-                          onClick={handleMultipleChoiceNext}
+                          onClick={() => { stopSpeaking(); handleMultipleChoiceNext(); }}
                           className="w-full flex items-center justify-center gap-2 py-3 px-3 rounded-[8px] bg-[#0F172A] hover:bg-neutral-800 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all select-none active:scale-95 cursor-pointer shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-200"
                           style={{ minHeight: '44px' }}
                         >
